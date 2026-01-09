@@ -1,0 +1,46 @@
+/* ===============================
+   MAIN ADMIN LAYOUT
+================================ */
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* ===============================
+   CONTENT AREA
+================================ */
+
+.admin-content {
+  flex: 1;
+  padding: 28px;
+  margin-left: 240px; /* SAME AS SIDEBAR WIDTH */
+  transition: margin 0.3s ease;
+}
+
+/* ===============================
+   TABLET
+================================ */
+
+@media (max-width: 900px) {
+  .admin-content {
+    margin-left: 70px; /* COLLAPSED SIDEBAR */
+  }
+}
+
+/* ===============================
+   MOBILE
+================================ */
+
+@media (max-width: 600px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-content {
+    margin-left: 0;
+    margin-bottom: 70px; /* SPACE FOR BOTTOM SIDEBAR */
+    padding: 16px;
+  }
+}

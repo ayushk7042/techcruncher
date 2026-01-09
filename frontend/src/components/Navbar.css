@@ -1,0 +1,180 @@
+/* ================= NAVBAR ================= */
+.tc-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 22px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+/* LEFT */
+.tc-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.tc-menu {
+  font-size: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* LOGO */
+.tc-logo {
+  font-size: 22px;
+  font-weight: 800;
+  text-decoration: none;
+  color: #111;
+}
+
+.tc-logo span {
+  color: #00a562;
+}
+
+/* CATEGORIES */
+.tc-categories {
+  display: flex;
+  gap: 14px;
+}
+
+.tc-cat {
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tc-cat:hover {
+  color: #00a562;
+}
+
+/* SEARCH */
+.tc-search {
+  position: relative;
+  width: 320px;
+}
+
+.tc-search input {
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+/* SEARCH DROPDOWN */
+.tc-search-box {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  padding: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.tc-search-item {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.tc-search-item:hover {
+  background: #f5f7fa;
+}
+
+.tc-search-item span {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tc-search-item small {
+  font-size: 12px;
+  color: #777;
+}
+
+/* ================= DRAWER ================= */
+.tc-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+}
+
+.tc-drawer {
+  width: 280px;
+  height: 100%;
+  background: #fff;
+  padding: 20px;
+}
+
+.tc-drawer h3 {
+  margin-bottom: 16px;
+}
+
+.tc-drawer-link {
+  display: block;
+  padding: 10px 0;
+  text-decoration: none;
+  color: #222;
+  font-weight: 600;
+}
+
+.tc-drawer-link:hover {
+  color: #00a562;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 768px) {
+  .tc-categories {
+    display: none;
+  }
+
+  .tc-search {
+    width: 220px;
+  }
+}
+
+
+
+
+/* ===== SIMPLE BLACK HAMBURGER ICON ===== */
+.tc-menu {
+  font-size: 28px;           /* icon size */
+  cursor: pointer;           /* pointer on hover */
+  color: #000000;            /* black color, always visible */
+  line-height: 1;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+/* Hover effect (subtle) */
+.tc-menu:hover {
+  color: #333333;            /* slightly darker black on hover */
+  transform: scale(1.05);    /* slight scale for feel */
+}
+
+/* Focus / active state */
+.tc-menu:focus,
+.tc-menu:active {
+  outline: none;
+  color: #333333;
+  transform: scale(1.05);
+}

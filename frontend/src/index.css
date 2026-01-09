@@ -1,0 +1,126 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f4f6f8;
+  color: #333;
+}
+
+/* ================= LOGIN ================= */
+.login {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login form {
+  background: #fff;
+  padding: 30px;
+  width: 320px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.login h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.login button {
+  width: 100%;
+  padding: 10px;
+  background: #007bff;
+  border: none;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.login button:hover {
+  background: #0056b3;
+}
+
+/* ================= DASHBOARD ================= */
+h2 {
+  margin-bottom: 15px;
+}
+
+.page {
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+/* ================= LIST ================= */
+.list-item {
+  padding: 10px;
+  background: #fff;
+  margin-bottom: 8px;
+  border-radius: 5px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.05);
+}
+
+/* ================= BUTTON ================= */
+button {
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: none;
+  background: #28a745;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1e7e34;
+}
+
+/* ================= INPUT ================= */
+input {
+  padding: 8px;
+  margin-right: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 768px) {
+  .login form {
+    width: 90%;
+  }
+}
+
+
+
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;  /* Full light background */
+  color: #222;             /* Default text color */
+  font-family: 'Arial', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
