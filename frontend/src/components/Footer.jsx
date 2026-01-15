@@ -87,10 +87,17 @@
 
 
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Footer.css";
 
 const Footer = ({ categories = [], recentNews = [], topCategories = [] }) => {
+    const navigate = useNavigate();
+
+
+    const handleSubscribe = (e) => {
+    e.preventDefault(); // form submit rok do
+    navigate("/contact"); // redirect to /contact page
+  };
   return (
     <footer className="footer">
 
@@ -99,7 +106,7 @@ const Footer = ({ categories = [], recentNews = [], topCategories = [] }) => {
 
         {/* ===== BRAND / ABOUT ===== */}
         <div className="footer-section footer-brand">
-          <h2>Tech<span>News</span></h2>
+          <h2>Tech<span>Cruncher</span></h2>
           <p>Your ultimate source for technology news, reviews, and insights.</p>
         </div>
 

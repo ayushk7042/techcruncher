@@ -1,2 +1,6 @@
 make all news (create tag), means all news has badge 
 1 and 2 section has no any header .. so make it any header which  is basically identified all news has own defined
+review newspage.jsx file in which many module not exported (ads link , external links , short description , content block (affiliate link ), 
+Seo not visible , )
+footer subscribe news box is connect with contact page , which means if anyone subscribe our news and contact with admin 
+so it sends notification and when any news update post so it will notify on the mail id .. news title post it and go to check now on rechcruncher.com 

@@ -107,10 +107,12 @@ import Home from "./pages/public/Home";
 import AddEditNews from "./pages/admin/AddEditNews";
 import CategoryNews from "./pages/public/CategoryNews";
 import NewsPage from "./pages/public/NewsPage";
+import Contacts from "./pages/admin/Contacts";
+import Privacy from "./pages/public/Privacy";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-
+import Contact from "./pages/public/Contact";
 import api from "./api/axios";
 
 const App = () => {
@@ -151,12 +153,16 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/news/:id" element={<NewsPage />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/category/:categoryId" element={<CategoryNews />} />
           <Route path="/admin/login" element={<Login />} />
           <Route
             path="/admin/dashboard"
             element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
           />
+
+          <Route path="/admin/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute> } />
           <Route
             path="/admin/categories"
             element={<ProtectedRoute><Categories /></ProtectedRoute>}
@@ -181,7 +187,7 @@ const App = () => {
             path="/admin/news/edit/:id"
             element={<ProtectedRoute><AddEditNews /></ProtectedRoute>}
           />
-          <Route
+          <Route 
             path="/admin/homepage"
             element={<ProtectedRoute><HomepageManager /></ProtectedRoute>}
           />

@@ -44,3 +44,27 @@
     padding: 16px;
   }
 }
+
+
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+  background: #f5f7fa;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 25px 30px;
+  min-height: 100vh;
+  margin-left: 220px; /* space for sidebar */
+  transition: all 0.3s ease;
+}
+
+@media screen and (max-width: 768px) {
+  .admin-content {
+    margin-left: 0; /* sidebar will overlay */
+    padding: 15px 10px;
+  }
+}

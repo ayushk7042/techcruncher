@@ -18,22 +18,63 @@ const Navbar = () => {
   }, []);
 
   /* ================= SEARCH ================= */
-  useEffect(() => {
-    if (search.trim().length < 2) {
+  // useEffect(() => {
+  //   if (search.trim().length < 2) {
+  //     setResults([]);
+  //     return;
+  //   }
+
+  //   const fetch = async () => {
+  //     setLoading(true);
+  //     const res = await api.get(`/news?search=${search}`);
+  //     setResults(res.data);
+  //     setLoading(false);
+  //   };
+
+  //   const delay = setTimeout(fetch, 400);
+  //   return () => clearTimeout(delay);
+  // }, [search]);
+
+
+/* ================= SEARCH ================= */
+useEffect(() => {
+  if (search.trim().length < 2) {
+    setResults([]);
+    return;
+  }
+
+  const fetch = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/news"); // get all news
+      const allNews = res.data;
+
+      // Filter by search: title or category match (case-insensitive)
+      const filtered = allNews
+        .map(n => {
+          let score = 0;
+          const query = search.toLowerCase();
+          if (n.title.toLowerCase().includes(query)) score += 2; // title match higher
+          if (n.category?.name.toLowerCase().includes(query)) score += 1; // category match lower
+          return { ...n, score };
+        })
+        .filter(n => n.score > 0)
+        .sort((a, b) => b.score - a.score) // higher score first
+        .slice(0, 5); // show top 5 matches
+
+      setResults(filtered);
+    } catch (err) {
+      console.error("Search failed", err);
       setResults([]);
-      return;
     }
+    setLoading(false);
+  };
 
-    const fetch = async () => {
-      setLoading(true);
-      const res = await api.get(`/news?search=${search}`);
-      setResults(res.data);
-      setLoading(false);
-    };
+  const delay = setTimeout(fetch, 400);
+  return () => clearTimeout(delay);
+}, [search]);
 
-    const delay = setTimeout(fetch, 400);
-    return () => clearTimeout(delay);
-  }, [search]);
+
 
   return (
     <>

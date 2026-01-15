@@ -77,6 +77,10 @@ const Dashboard = () => {
           </a>
         </div>
 
+<a href="/admin/contacts" className="action-card">
+  📩 Contact Messages
+</a>
+
         {/* LATEST NEWS */}
         <div className="latest-section">
           <h2>Latest News</h2>

@@ -245,3 +245,214 @@
     justify-content: space-between;
   }
 }
+
+
+
+
+
+/* ================= DASHBOARD PAGE ================= */
+.dashboard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  font-family: "Inter", sans-serif;
+  color: #111;
+}
+
+/* HEADER */
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.dashboard-header p {
+  font-size: 1rem;
+  color: #555;
+}
+
+/* ================= STATS CARDS ================= */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.stat-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: #2563eb;
+}
+
+.stat-card p {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, #ffe8e8 0%, #ffdcdc 100%);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0,0,0,0.12);
+}
+
+/* ================= QUICK ACTIONS ================= */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.action-card {
+  flex: 1 1 180px;
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(0,0,0,0.12);
+}
+
+/* ================= LATEST NEWS TABLE ================= */
+.latest-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+.admin-table thead {
+  background: #f4f7f9;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px 15px;
+  text-align: left;
+  font-size: 0.95rem;
+  color: #111;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-table th {
+  font-weight: 600;
+}
+
+.admin-table tbody tr:hover {
+  background: #f0f8ff;
+  transition: background 0.3s ease;
+}
+
+/* STATUS BADGES */
+.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #fff;
+}
+
+.status.published {
+  background: #2563eb;
+}
+
+.status.draft {
+  background: #999;
+}
+
+/* ================= RESPONSIVE ================= */
+@media screen and (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .action-card {
+    flex: 1 1 140px;
+    font-size: 0.95rem;
+    padding: 14px;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 12px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .quick-actions {
+    flex-direction: column;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+  }
+  .admin-table thead, .admin-table tbody, .admin-table th, .admin-table td, .admin-table tr {
+    display: block;
+  }
+  .admin-table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  .admin-table tr {
+    border: 1px solid #e0e0e0;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+  .admin-table td {
+    border: none;
+    position: relative;
+    padding-left: 50%;
+    font-size: 0.9rem;
+  }
+  .admin-table td::before {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 45%;
+    padding-right: 10px;
+    white-space: nowrap;
+    font-weight: 600;
+    color: #555;
+  }
+  .admin-table td:nth-of-type(1)::before { content: "Title"; }
+  .admin-table td:nth-of-type(2)::before { content: "Category"; }
+  .admin-table td:nth-of-type(3)::before { content: "Status"; }
+  .admin-table td:nth-of-type(4)::before { content: "Date"; }
+}

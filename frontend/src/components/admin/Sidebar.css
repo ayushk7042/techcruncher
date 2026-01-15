@@ -120,3 +120,79 @@
   left: 0;
   top: 0;
 }
+
+
+
+
+
+/* ================= SIDEBAR ================= */
+.sidebar {
+  width: 220px;
+  background-color: #ffffff; /* PURE WHITE */
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 20px;
+  position: fixed; /* always fixed on side */
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.sidebar h2 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+  color: #111; /* dark text */
+}
+
+.sidebar a {
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #555; /* subtle gray text */
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sidebar a.active {
+  background: #4facfe; /* blue accent for active link */
+  color: #fff;
+}
+
+.sidebar a:hover {
+  background: #eaf6ff; /* light hover background */
+  color: #111;
+}
+
+/* ================= COLLAPSIBLE MENU FOR MOBILE ================= */
+.sidebar.mobile-hidden {
+  transform: translateX(-100%);
+}
+
+.sidebar.mobile-visible {
+  transform: translateX(0);
+}
+
+/* ================= RESPONSIVE ================= */
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+    height: 100vh;
+    top: 0;
+    left: 0;
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    font-size: 1.2rem;
+  }
+
+  .sidebar a {
+    padding: 12px 15px;
+    font-size: 0.95rem;
+  }
+}
