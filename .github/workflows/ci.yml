@@ -41,10 +41,6 @@ jobs:
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('techcruncher.com/package.json') != '' }}
-    defaults:
-      run:
-        working-directory: techcruncher.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,11 +49,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: techcruncher.com/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Install dependencies and build frontend when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f techcruncher.com/package.json ]]; then
+            echo "Frontend is not present yet; skipping frontend build."
+            exit 0
+          fi
 
-      - name: Build frontend
-        run: npm run build
+          cd techcruncher.com
+          npm ci
+          npm run build
