@@ -1,0 +1,12 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;  /* Full light background */
+  color: #222;             /* Default text color */
+  font-family: 'Arial', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
