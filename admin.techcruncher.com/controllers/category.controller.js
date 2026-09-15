@@ -113,7 +113,9 @@ exports.getCategories = async (req, res) => {
       .sort({ priority: -1, order: 1, name: 1 })
       .lean();
 
-    if (req.query.withCounts === "true") {
+    // The stored articleCount is never maintained, so counts are always computed
+    // live (?withCounts=true is still accepted for older clients).
+    {
       const counts = await News.aggregate([
         { $match: { deletedAt: null, status: "published" } },
         { $group: { _id: "$category", count: { $sum: 1 } } },
@@ -313,7 +315,7 @@ exports.toggleVisibility = async (req, res) => {
       patch.hidden = !current.hidden;
     }
 
-    const category = await Category.findByIdAndUpdate(req.params.id, patch, { new: true });
+    const category = await Category.findByIdAndUpdate(req.params.id, patch, { returnDocument: "after" });
     if (!category) return res.status(404).json({ success: false, message: "Not found" });
 
     res.json({ success: true, data: category });
@@ -335,8 +337,13 @@ exports.deleteCategory = async (req, res) => {
   try {
     const id = req.params.id;
 
-    const articleCount = await News.countDocuments({ category: id, deletedAt: null });
-    const childCount = await Category.countDocuments({ parent: id });
+    // Articles use a category either as their main category or as a sub-category,
+    // and trashed articles still point at it.
+    const inUse = { $or: [{ category: id }, { subCategory: id }] };
+    const [articleCount, childCount] = await Promise.all([
+      News.countDocuments(inUse),
+      Category.countDocuments({ parent: id }),
+    ]);
 
     if ((articleCount || childCount) && req.query.force !== "true") {
       return res.status(409).json({

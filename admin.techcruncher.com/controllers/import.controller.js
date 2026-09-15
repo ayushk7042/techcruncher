@@ -37,7 +37,7 @@ exports.downloadSample = async (req, res) => {
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="driftdine-article-import-template.xlsx"'
+      'attachment; filename="techcruncher-article-import-template.xlsx"'
     );
 
     res.send(Buffer.from(buffer));
@@ -70,7 +70,7 @@ exports.exportArticles = async (req, res) => {
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="driftdine-articles-${Date.now()}.xlsx"`
+      `attachment; filename="techcruncher-articles-${Date.now()}.xlsx"`
     );
 
     res.send(Buffer.from(buffer));
@@ -191,8 +191,9 @@ const importOneRow = async (row, { mode, batchId, skipInvalid, errorRows }) => {
 
   try {
     const body = rowToBody(row);
+    // contentText is select:false; the rollback snapshot must include it.
     const existing = row.__slug
-      ? await News.findOne({ slug: row.__slug })
+      ? await News.findOne({ slug: row.__slug }).select("+contentText")
       : null;
 
     if (existing && mode === "create") {
@@ -288,7 +289,9 @@ const runImport = async ({ rows, errors, job, mode, skipInvalid }) => {
       (result.tags || []).forEach((t) => touchedTags.add(String(t)));
     });
 
-    // progress checkpoint
+    // Progress checkpoint. Created ids are persisted per chunk so a crash
+    // mid-import still leaves everything it wrote rollback-able.
+    job.createdIds = createdIds;
     job.createdCount = created;
     job.updatedCount = updated;
     job.skippedCount = skipped;
@@ -415,6 +418,15 @@ exports.runImportSheet = async (req, res) => {
    HISTORY / STATUS / ROLLBACK
 ========================================================= */
 
+/**
+ * A background import runs in-process, so a restart mid-import leaves the job
+ * "importing" forever. After an hour with no finish it is treated as failed.
+ */
+const STALE_IMPORT_MS = 60 * 60 * 1000;
+const isStale = (job) =>
+  job.status === "importing" &&
+  Date.now() - new Date(job.startedAt || job.createdAt).getTime() > STALE_IMPORT_MS;
+
 /** GET /api/import/history */
 exports.importHistory = async (req, res) => {
   try {
@@ -447,8 +459,10 @@ exports.importStatus = async (req, res) => {
       data: {
         ...job,
         processed: (job.createdCount || 0) + (job.updatedCount || 0) + (job.skippedCount || 0),
+        // A failed or interrupted batch may still have written rows, so it can
+        // be rolled back too.
         canRollback:
-          job.status === "completed" &&
+          (job.status === "completed" || job.status === "failed" || isStale(job)) &&
           Boolean(job.createdIds?.length || job.updatedCount),
       },
     });
@@ -469,7 +483,7 @@ exports.rollbackImport = async (req, res) => {
     if (job.status === "rolled_back") {
       return res.status(400).json({ success: false, message: "Already rolled back" });
     }
-    if (job.status === "importing") {
+    if (job.status === "importing" && !isStale(job)) {
       return res
         .status(409)
         .json({ success: false, message: "Import still running — wait for it to finish" });

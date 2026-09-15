@@ -33,18 +33,28 @@ const GALLERY_POPULATE = {
   // The wall prints a date and a read count under every tile, so a curated
   // tile has to carry them too — without these it rendered with the caption
   // line blank while an auto-filled tile beside it showed both.
-  select: "title slug featuredImage ogImage gallery category status publishedDate createdAt views",
+  select: "title slug featuredImage image ogImage gallery category status publishedDate createdAt views",
   populate: { path: "category", select: "name slug" },
 };
 
+/** Card-sized story fields, with the category resolved so chips and links work. */
+const STORY_SELECT =
+  "title slug subtitle description excerpt featuredImage image category author publishedDate createdAt readTime views status breakingNews featured editorsPick";
+
+const storyPath = (path) => ({
+  path,
+  select: STORY_SELECT,
+  populate: { path: "category", select: "name slug shortLabel" },
+});
+
 const REF_POPULATE = [
-  "mainTrending",
-  "subTrending",
-  "categorySections.category",
-  "categorySections.trending",
-  "categorySections.subTrending",
-  ...RAIL_KEYS.map((key) => `sections.${key}.items`),
-].join(" ");
+  storyPath("mainTrending"),
+  storyPath("subTrending"),
+  { path: "categorySections.category" },
+  storyPath("categorySections.trending"),
+  storyPath("categorySections.subTrending"),
+  ...RAIL_KEYS.map((key) => storyPath(`sections.${key}.items`)),
+];
 
 /**
  * Normalises whatever the admin panel posted into exactly the shape the
@@ -56,7 +66,7 @@ const REF_POPULATE = [
  * document instead of collapsing back to an id, so the frontend gets image,
  * title and category in the same response.
  */
-function sanitizeRail(input, side) {
+function sanitizeGalleryRail(input, side) {
   const raw = input && typeof input === "object" ? input : {};
   return {
     // Default on — an unsold rail renders nothing, so the only thing this
@@ -130,8 +140,8 @@ function sanitizeGallery(input, keepRefs = false) {
     source: oneOf(source.source, ["auto", "manual"], "auto"),
     items,
     rails: {
-      left: sanitizeRail(railsInput.left, "left"),
-      right: sanitizeRail(railsInput.right, "right"),
+      left: sanitizeGalleryRail(railsInput.left, "left"),
+      right: sanitizeGalleryRail(railsInput.right, "right"),
     },
   };
 }
@@ -230,36 +240,42 @@ exports.getHomepage = async (req, res) => {
 
 exports.updateHomepage = async (req, res) => {
   try {
-    const data = req.body || {};
+    const body = req.body || {};
+    const idOrNull = (value) => (isObjectId(value) ? String(value) : null);
+    const idList = (value, max) =>
+      (Array.isArray(value) ? value : []).map(idOrNull).filter(Boolean).slice(0, max);
 
-    // SAFETY: clean and validate data before saving
-    if (data.mainTrending && data.mainTrending.length === 0) {
-      delete data.mainTrending;
-    }
-
-    if (data.subTrending?.length > 5) {
-      data.subTrending = data.subTrending.slice(0, 5);
-    }
-
-    if (Array.isArray(data.categorySections)) {
-      data.categorySections = data.categorySections
-        .filter((sec) => sec && sec.category) // remove invalid sections
+    // Only known keys with valid ids are ever saved; a malformed payload cannot
+    // put the homepage into a state the frontend cannot lay out.
+    const data = {
+      mainTrending: idOrNull(body.mainTrending),
+      subTrending: idList(body.subTrending, 5),
+      categorySections: (Array.isArray(body.categorySections) ? body.categorySections : [])
+        .filter((sec) => sec && isObjectId(sec.category))
         .map((sec) => ({
-          category: sec.category,
-          trending: sec.trending || null,
-          // Four, because that is what the block beside the lead story shows;
-          // storing a fifth would only ever be dropped on the way out.
-          subTrending: Array.isArray(sec.subTrending)
-            ? sec.subTrending.filter(Boolean).slice(0, 4)
-            : [],
-        }));
-    }
+          category: String(sec.category),
+          trending: idOrNull(sec.trending),
+          // Four, because that is what the block beside the lead story shows.
+          subTrending: idList(sec.subTrending, 4),
+        })),
+      customHomeBlocks: (Array.isArray(body.customHomeBlocks) ? body.customHomeBlocks : []).map((block, index) => ({
+        title: str(block?.title),
+        link: str(block?.link),
+        image: str(block?.image),
+        order: Number.isFinite(Number(block?.order)) ? Number(block.order) : index,
+      })),
+      gallery: body.gallery,
+      sections: body.sections,
+    };
 
     let homepage = await Homepage.findOne();
 
     if (!homepage) {
       homepage = await Homepage.create({
-        ...data,
+        mainTrending: data.mainTrending,
+        subTrending: data.subTrending,
+        categorySections: data.categorySections,
+        customHomeBlocks: data.customHomeBlocks,
         gallery: sanitizeGallery(data.gallery),
         sections: sanitizeSections(data.sections),
       });
@@ -292,6 +308,6 @@ exports.updateHomepage = async (req, res) => {
     res.json(homepage);
   } catch (err) {
     console.error("Update homepage error:", err);
-    res.status(500).json({ message: err.message, error: err.toString() });
+    res.status(500).json({ message: "Could not save the homepage" });
   }
 };

@@ -24,7 +24,8 @@ const createAdmin = async (email, password, name = "Admin") => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const admin = new Admin({ name, email, password: hashed });
+    // The bootstrap account must be able to create every other admin.
+    const admin = new Admin({ name, email: email.toLowerCase(), password: hashed, role: "superadmin" });
     await admin.save();
 
     console.log("🎉 Admin created successfully:");

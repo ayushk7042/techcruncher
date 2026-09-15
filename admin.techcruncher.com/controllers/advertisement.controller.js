@@ -47,13 +47,17 @@ exports.serveAds = async (req, res) => {
 
 /** POST /api/ads/:id/impression — fire-and-forget counter */
 exports.trackImpression = async (req, res) => {
-  Advertisement.updateOne({ _id: req.params.id }, { $inc: { impressions: 1 } }).catch(() => {});
+  if (isObjectId(req.params.id)) {
+    Advertisement.updateOne({ _id: req.params.id }, { $inc: { impressions: 1 } }).catch(() => {});
+  }
   res.json({ success: true });
 };
 
 /** POST /api/ads/:id/click */
 exports.trackClick = async (req, res) => {
-  Advertisement.updateOne({ _id: req.params.id }, { $inc: { clicks: 1 } }).catch(() => {});
+  if (isObjectId(req.params.id)) {
+    Advertisement.updateOne({ _id: req.params.id }, { $inc: { clicks: 1 } }).catch(() => {});
+  }
   res.json({ success: true });
 };
 
@@ -148,7 +152,7 @@ exports.updateAd = async (req, res) => {
     const ad = await Advertisement.findByIdAndUpdate(
       req.params.id,
       buildAdPayload(req.body),
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!ad) return res.status(404).json({ success: false, message: "Not found" });

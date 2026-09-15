@@ -1,15 +1,16 @@
+/**
+ * Final error handler. Client errors keep their message; server errors are
+ * logged in full but answered generically so internals never reach the client.
+ */
 const errorHandler = (err, req, res, next) => {
-  console.error("❌ Error:", err);
+  const statusCode = Number(err.statusCode || err.status) || 500;
 
-  const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || "Internal Server Error";
+  if (statusCode >= 500) {
+    console.error("❌ Error:", err);
+    return res.status(statusCode).json({ success: false, message: "Something went wrong on our side." });
+  }
 
-  // CORS headers are set by the cors() middleware; re-setting them here with a
-  // hardcoded origin used to break error responses for the real frontend.
-  res.status(statusCode).json({
-    success: false,
-    message,
-  });
+  res.status(statusCode).json({ success: false, message: err.message || "Request failed" });
 };
 
 module.exports = errorHandler;
