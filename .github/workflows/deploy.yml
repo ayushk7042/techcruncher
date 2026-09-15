@@ -1,0 +1,117 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy frontend and backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build frontend
+        working-directory: techcruncher.com
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_SSH_KEY"
+          port="${DEPLOY_PORT:-22}"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          chmod 600 "$RUNNER_TEMP/deploy_key"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$port" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          {
+            echo "DEPLOY_PORT=$port"
+            echo "DEPLOY_KEY=$RUNNER_TEMP/deploy_key"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload application files
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          ssh_cmd="ssh -i $DEPLOY_KEY -p $DEPLOY_PORT"
+          rsync -az --delete \
+            --exclude '.env' \
+            --exclude 'node_modules/' \
+            --exclude 'uploads/' \
+            --exclude 'logs/' \
+            -e "$ssh_cmd" \
+            admin.techcruncher.com/ "$DEPLOY_USER@$DEPLOY_HOST:/var/www/admin.techcruncher.com/"
+          rsync -az --delete \
+            --exclude '.env' \
+            --exclude 'node_modules/' \
+            --exclude '.next/cache/' \
+            -e "$ssh_cmd" \
+            techcruncher.com/ "$DEPLOY_USER@$DEPLOY_HOST:/var/www/techcruncher.com/"
+
+      - name: Install production dependencies and restart services
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i "$DEPLOY_KEY" -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /var/www/admin.techcruncher.com
+          npm ci --omit=dev
+          if pm2 describe internal-affalliances >/dev/null 2>&1; then
+            pm2 restart internal-affalliances --update-env
+          elif pm2 describe techcruncher-api >/dev/null 2>&1; then
+            pm2 restart techcruncher-api --update-env
+          else
+            pm2 start server.js --name techcruncher-api --update-env
+          fi
+
+          cd /var/www/techcruncher.com
+          npm ci --omit=dev
+          if pm2 describe techcruncher-web >/dev/null 2>&1; then
+            pm2 restart techcruncher-web --update-env
+          else
+            pm2 start npm --name techcruncher-web --cwd /var/www/techcruncher.com -- start
+          fi
+          pm2 save
+          if command -v nginx >/dev/null 2>&1; then
+            nginx -t
+            systemctl reload nginx
+          fi
+          REMOTE
+
+      - name: Verify services
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i "$DEPLOY_KEY" -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            'curl --fail --silent --show-error http://127.0.0.1:7000/api/health >/dev/null && curl --fail --silent --show-error http://127.0.0.1:5199 >/dev/null'
