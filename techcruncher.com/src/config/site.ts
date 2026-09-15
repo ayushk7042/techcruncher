@@ -8,7 +8,7 @@ export const site = {
   title: "TechCruncher — Reporting on what comes next",
   description:
     "Independent reporting, reviews and analysis on the technology, business and culture shaping what comes next.",
-  url: (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5199").replace(/\/+$/, ""),
+  url: (process.env.NEXT_PUBLIC_SITE_URL || "https://techcruncher.com").replace(/\/+$/, ""),
   desk: "TechCruncher Desk",
   newsletterReaders: "25,000",
   socials: [
@@ -36,7 +36,7 @@ export const sections = [
   { label: "Photography", href: "/gallery" },
 ] as const;
 
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:7000/api").replace(
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://admin.techcruncher.com/api").replace(
   /\/+$/,
   "",
 );

@@ -29,6 +29,8 @@ jobs:
         working-directory: techcruncher.com
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_API_BASE_URL: https://admin.techcruncher.com/api
+          NEXT_PUBLIC_SITE_URL: https://techcruncher.com
         run: |
           npm ci
           npm run lint
