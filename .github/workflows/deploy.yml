@@ -85,6 +85,11 @@ jobs:
           set -euo pipefail
           ssh -i "$DEPLOY_KEY" -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'REMOTE'
           set -euo pipefail
+          export NVM_DIR=/root/.nvm
+          source "$NVM_DIR/nvm.sh"
+          nvm install 24.15.0
+          nvm use 24.15.0
+
           cd /var/www/admin.techcruncher.com
           npm ci --omit=dev
           if pm2 describe internal-affalliances >/dev/null 2>&1; then
@@ -96,12 +101,12 @@ jobs:
           fi
 
           cd /var/www/techcruncher.com
-          npm ci --omit=dev
-          if pm2 describe techcruncher-web >/dev/null 2>&1; then
-            pm2 restart techcruncher-web --update-env
-          else
-            pm2 start npm --name techcruncher-web --cwd /var/www/techcruncher.com -- start
-          fi
+          npm ci
+          NEXT_PUBLIC_API_BASE_URL=https://admin.techcruncher.com/api \
+            NEXT_PUBLIC_SITE_URL=https://techcruncher.com \
+            NEXT_TELEMETRY_DISABLED=1 npm run build
+          pm2 delete techcruncher-web >/dev/null 2>&1 || true
+          pm2 start npm --name techcruncher-web --cwd /var/www/techcruncher.com -- start
           pm2 save
           if command -v nginx >/dev/null 2>&1; then
             nginx -t
