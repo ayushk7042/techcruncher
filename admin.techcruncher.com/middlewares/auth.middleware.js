@@ -1,24 +1,33 @@
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 
-exports.authMiddleware = async (req, res, next) => {
+const readToken = (req) => req.headers.authorization?.split(" ")[1] || req.cookies?.token;
+
+/** Resolves the admin for a request's token, or null. Never throws. */
+const resolveAdmin = async (req) => {
+  const token = readToken(req);
+  if (!token) return null;
+
   try {
-    const token = req.headers.authorization?.split(" ")[1] || req.cookies?.token;
-
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const admin = await Admin.findById(decoded.id);
-    if (!admin) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-
-    req.admin = admin;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Token expired or invalid" });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    return await Admin.findById(decoded.id);
+  } catch {
+    return null;
   }
+};
+
+exports.resolveAdmin = resolveAdmin;
+
+exports.authMiddleware = async (req, res, next) => {
+  if (!readToken(req)) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const admin = await resolveAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ success: false, message: "Token expired or invalid" });
+  }
+
+  req.admin = admin;
+  next();
 };

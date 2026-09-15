@@ -19,7 +19,8 @@ const adminSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ["superadmin", "editor"],
-    default: "superadmin"
+    // Least privilege by default; create-admin.js creates the first superadmin explicitly.
+    default: "editor"
   },
 
   permissions: {

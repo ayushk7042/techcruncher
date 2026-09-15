@@ -28,7 +28,7 @@ const BRAND = {
  */
 const buildSampleWorkbook = async () => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Driftdine CMS";
+  wb.creator = "TechCruncher CMS";
   wb.created = new Date();
 
   /* ---------------- Articles ---------------- */
@@ -385,7 +385,8 @@ const flattenArticle = (n) => ({
   authorDesignation: n.author?.designation || "",
   authorRedirectUrl: n.author?.redirectUrl || "",
 
-  featuredImageUrl: n.featuredImage?.url || "",
+  // Legacy articles keep their lead photo in `image`.
+  featuredImageUrl: n.featuredImage?.url || n.image?.url || "",
   featuredImageRedirect: n.featuredImage?.redirectUrl || "",
   featuredImageAlt: n.featuredImage?.alt || "",
   featuredImageCaption: n.featuredImage?.caption || "",
@@ -440,7 +441,7 @@ const flattenArticle = (n) => ({
 /** @returns {Promise<Buffer>} */
 const buildExportWorkbook = async (articles = []) => {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Driftdine CMS";
+  wb.creator = "TechCruncher CMS";
 
   const ws = wb.addWorksheet("Articles", { views: [{ state: "frozen", ySplit: 1 }] });
 

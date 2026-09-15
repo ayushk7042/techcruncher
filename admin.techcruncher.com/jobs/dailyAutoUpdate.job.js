@@ -1,252 +1,167 @@
-
-
 const cron = require("node-cron");
+const axios = require("axios");
+
 const News = require("../models/News");
 const Category = require("../models/Category");
-const axios = require("axios");
-const slugify = require("slugify");
 
 const { optimizeSEO } = require("../services/seoOptimizer.service");
 const { autoInternalLinking } = require("../services/internalLinker.service");
-
-const { generateFullArticle } = require("../services/aiArticleGenerator.service");
-const { markdownToBlocks } = require("../utils/markdownToBlocks");
+const { generateFullArticle, isAiConfigured } = require("../services/aiArticleGenerator.service");
 const { extractTags } = require("../services/tagGenerator.service");
-
-
-const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
+const { resolveTags } = require("../services/newsPayload.service");
+const { articleTextToHtml } = require("../utils/articleTextToHtml");
+const { escapeRegex } = require("../utils/escapeHtml");
+const { uniqueSlug, normalizeImage, makeExcerpt } = require("../utils/newsHelpers");
 
 /* =========================
    HELPERS
 ========================= */
 
-// Unique slug generator
-const generateUniqueSlug = async (title) => {
-  const base = slugify(title, { lower: true, strict: true });
-  let slug = base;
-  let i = 1;
-
-  while (await News.findOne({ slug })) {
-    slug = `${base}-${i}`;
-    i++;
+class AutoNewsConfigError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 400;
   }
-  return slug;
-};
+}
 
-// Strong duplicate checker
 const isDuplicateNews = async (apiNews) => {
-  // 1️⃣ URL based (strongest)
-  if (apiNews.url) {
-    const byUrl = await News.findOne({ sourceUrl: apiNews.url });
-    if (byUrl) return true;
-  }
+  if (apiNews.url && (await News.exists({ sourceUrl: apiNews.url }))) return true;
 
-  // 2️⃣ Title similarity
-  const byTitle = await News.findOne({
-    title: { $regex: apiNews.title?.substring(0, 40), $options: "i" }
-  });
-  if (byTitle) return true;
-
-  return false;
+  const prefix = String(apiNews.title || "").slice(0, 40);
+  if (!prefix) return true;
+  return Boolean(await News.exists({ title: { $regex: `^${escapeRegex(prefix)}`, $options: "i" } }));
 };
 
-// Fetch news from GNews (BEST API)
-const normalizeQuery = (q) => {
-  if (!q || typeof q !== "string") return "";
-  // Special characters like '&' break GNews query syntax.
-  // Convert common separators and remove extras.
-  return q
+// Special characters like '&' break GNews query syntax.
+const normalizeQuery = (q) =>
+  String(q || "")
     .trim()
     .replace(/&/g, " and ")
-    .replace(/[\/:?#\[\]@!$'()*+,;=]/g, " ")
+    .replace(/[/:?#[\]@!$'()*+,;=]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-};
 
 const fetchTopNews = async (query) => {
-  if (!GNEWS_API_KEY) {
-    throw new Error("GNEWS_API_KEY is not set in environment variables");
-  }
-
-  const safeQuery = normalizeQuery(query);
-  const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
-    safeQuery
-  )}&lang=en&country=in&max=10&apikey=${GNEWS_API_KEY}`;
-
   try {
-    const res = await axios.get(url);
-    if (!res.data || !Array.isArray(res.data.articles)) {
-      console.warn("gnews: unexpected response", res.data);
-      return [];
-    }
-    return res.data.articles;
-  } catch (error) {
-    console.error("gnews request failed", {
-      query,
-      url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
+    const res = await axios.get("https://gnews.io/api/v4/search", {
+      params: { q: normalizeQuery(query), lang: "en", country: "in", max: 10, apikey: process.env.GNEWS_API_KEY },
+      timeout: 15000,
     });
+    return Array.isArray(res.data?.articles) ? res.data.articles : [];
+  } catch (error) {
+    console.error("GNews request failed:", { query, status: error.response?.status, message: error.message });
     return [];
   }
 };
 
+/** Builds one draft article from a GNews item, or returns null when it should be skipped. */
+const buildDraft = async (apiNews, category, affiliateLinks) => {
+  if (await isDuplicateNews(apiNews)) return null;
+
+  const title = String(apiNews.title).trim();
+  const description = apiNews.description || apiNews.content || "";
+
+  const body = await generateFullArticle({ title, description, category: category.name });
+  if (!body) return null;
+
+  const { ids: tagIds, names: tagNames } = await resolveTags(extractTags(title, body).slice(0, 6));
+  const content = articleTextToHtml(body, title);
+  const published = apiNews.publishedAt ? new Date(apiNews.publishedAt) : new Date();
+
+  const news = new News({
+    category: category._id,
+    title,
+    subtitle: apiNews.source?.name || "",
+    slug: await uniqueSlug(News, title),
+    description: description.slice(0, 300) || title,
+    excerpt: makeExcerpt(content),
+    content,
+    featuredImage: normalizeImage(apiNews.image),
+    tags: tagIds,
+    tagNames,
+    affiliateLinks,
+    seoTitle: title,
+    seoDescription: description.slice(0, 160),
+    seoKeywords: tagNames,
+    sourceUrl: apiNews.url,
+    sourceName: apiNews.source?.name,
+    publishedDate: Number.isNaN(published.getTime()) ? new Date() : published,
+    // Always a draft: AI copy is reviewed by an editor before it goes live.
+    status: "draft",
+    aiGenerated: true,
+    createdBy: "ai",
+    autoUpdateEnabled: false,
+  });
+
+  await autoInternalLinking(news);
+  await optimizeSEO(news);
+  await news.save();
+  return news;
+};
+
 /* =========================
-   CRON JOB
+   JOB
 ========================= */
 
-const dailyAutoUpdateJob = () => {
-  const runJob = async () => {
-    console.log("🕒 Auto News Job Started");
+let running = false;
 
-    try {
-      const categories = await Category.find({
-        autoUpdateEnabled: true,
-        status: "active"
-      });
+/**
+ * Creates AI-written drafts for every active category with auto-update on.
+ * Returns the number of drafts created. One failing article never stops the run.
+ */
+const runAutoNews = async () => {
+  if (!process.env.GNEWS_API_KEY || !isAiConfigured()) {
+    throw new AutoNewsConfigError("Auto-news needs GNEWS_API_KEY and GEMINI_API_KEY on the server.");
+  }
+  if (running) throw Object.assign(new Error("Auto-news is already running."), { statusCode: 409 });
 
-      for (const category of categories) {
-        console.log(`📌 Category: ${category.name}`);
+  running = true;
+  let created = 0;
+  console.log("🕒 Auto News Job Started");
 
-        const apiNewsList = await fetchTopNews(category.name);
-        const limit = Math.min(
-          category.dailyAutoUpdateLimit,
-          apiNewsList.length
-        );
+  try {
+    const categories = await Category.find({ autoUpdateEnabled: true, status: "active" });
 
-        // Latest admin news (affiliate + blocks)
-        const latestAdminNews = await News.find({
-          category: category._id,
-          aiGenerated: false
-        })
-          .sort({ updatedAt: -1 })
-          .limit(1);
+    for (const category of categories) {
+      const limit = Math.max(0, Number(category.dailyAutoUpdateLimit) || 0);
+      if (!limit) continue;
 
-        let createdCount = 0;
+      const [apiNewsList, latestAdminNews] = await Promise.all([
+        fetchTopNews(category.name),
+        News.findOne({ category: category._id, aiGenerated: false }).sort({ updatedAt: -1 }).select("affiliateLinks").lean(),
+      ]);
 
-        for (let i = 0; i < apiNewsList.length && createdCount < limit; i++) {
-          const apiNews = apiNewsList[i];
-
-          // Skip duplicates
-          const duplicate = await isDuplicateNews(apiNews);
-          if (duplicate) {
-            console.log("⏭ Skipped duplicate:", apiNews.title);
-            continue;
+      let createdHere = 0;
+      for (const apiNews of apiNewsList) {
+        if (createdHere >= limit) break;
+        try {
+          const draft = await buildDraft(apiNews, category, latestAdminNews?.affiliateLinks || []);
+          if (draft) {
+            createdHere += 1;
+            console.log("✅ Draft created:", draft.title);
           }
-
-          const title = apiNews.title;
-          const subtitle = apiNews.source?.name || "";
-          const description =
-            apiNews.content ||
-            apiNews.description ||
-            "Detailed news article coming soon.";
-
-          const imageUrl =
-            apiNews.image ||
-            `https://source.unsplash.com/800x600/?${encodeURIComponent(title)}`;
-
-          const slug = await generateUniqueSlug(title);
-
-// ===============================
-// 🤖 AI FULL ARTICLE GENERATION
-// ===============================
-const aiMarkdown = await generateFullArticle({
-  title,
-  description,
-  category: category.name
-});
-
-// Convert markdown → CMS blocks (H2/H3 auto)
-const contentBlocks = markdownToBlocks(aiMarkdown);
-
-// Extract tags + trending keywords
-const tags = extractTags(title, aiMarkdown);
-
-
-        //   const news = new News({
-        //     category: category._id,
-        //     title,
-        //     subtitle,
-        //     slug,
-        //     description,
-        //     featuredImage: { url: imageUrl, public_id: "" },
-
-        //     contentBlocks: [
-        //       { type: "text", value: description },
-        //       ...(latestAdminNews[0]?.contentBlocks || [])
-        //     ],
-
-        //     affiliateLinks: latestAdminNews[0]?.affiliateLinks || [],
-
-        //     seoTitle: title,
-        //     seoDescription: description.slice(0, 160),
-        //     seoKeywords: title.split(" "),
-        //     sourceUrl: apiNews.url,
-        //     sourceName: apiNews.source?.name,
-        //     publishedAt: apiNews.publishedAt,
-
-        //     status: "published",
-        //     aiGenerated: true,
-        //     createdBy: "ai",
-        //     autoUpdateEnabled: false
-        //   });
-
-const news = new News({
-  category: category._id,
-  title,
-  subtitle,
-  slug,
-  description,
-
-  featuredImage: {
-    url: imageUrl,
-    public_id: ""
-  },
-
-  // 🔥 AI GENERATED CONTENT
-  contentBlocks,
-  tags,
-
-  affiliateLinks: latestAdminNews[0]?.affiliateLinks || [],
-
-  seoTitle: title,
-  seoDescription: description.slice(0, 160),
-  seoKeywords: tags,
-
-  sourceUrl: apiNews.url,
-  sourceName: apiNews.source?.name,
-  publishedAt: apiNews.publishedAt,
-
-  status: "published",
-  aiGenerated: true,
-  createdBy: "ai",
-  autoUpdateEnabled: false
-});
-
-
-          await news.save();
-          await autoInternalLinking(news);
-          await optimizeSEO(news);
-
-          createdCount++;
-          console.log("✅ News Created:", title);
+        } catch (err) {
+          console.error(`Auto-news article failed (${apiNews?.title}):`, err.message);
         }
-
-        console.log(`🏁 Category Done: ${category.name}`);
       }
 
-      console.log("🏁 Auto News Job Completed");
-    } catch (err) {
-      console.error("❌ Auto News Job Failed:", err.message);
+      created += createdHere;
+      console.log(`🏁 ${category.name}: ${createdHere} draft(s)`);
     }
-  };
+  } finally {
+    running = false;
+  }
 
-  // Manual run (for testing)
-  runJob();
+  console.log(`🏁 Auto News Job Completed (${created} drafts)`);
+  return created;
+};
 
-  // Cron run
-  cron.schedule(process.env.CRON_TIME || "0 2 * * *", runJob);
+/** Registers the cron schedule. Enabled from server.js via ENABLE_AUTO_NEWS. */
+const dailyAutoUpdateJob = () => {
+  cron.schedule(process.env.CRON_TIME || "0 2 * * *", () => {
+    runAutoNews().catch((err) => console.error("❌ Auto News Job Failed:", err.message));
+  });
 };
 
 module.exports = dailyAutoUpdateJob;
+module.exports.runAutoNews = runAutoNews;

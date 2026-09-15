@@ -180,7 +180,7 @@ exports.updateMedia = async (req, res) => {
       if (req.body[key] !== undefined) patch[key] = req.body[key];
     });
 
-    const media = await Media.findByIdAndUpdate(req.params.id, patch, { new: true });
+    const media = await Media.findByIdAndUpdate(req.params.id, patch, { returnDocument: "after" });
     if (!media) return res.status(404).json({ success: false, message: "Not found" });
 
     res.json({ success: true, data: media });
@@ -189,9 +189,26 @@ exports.updateMedia = async (req, res) => {
   }
 };
 
+/** Number of articles whose stored images or body reference a URL. */
+const countArticleReferences = async (url) => {
+  if (!url) return 0;
+  const News = require("../models/News");
+  const { escapeRegex } = require("../utils/escapeHtml");
+  return News.countDocuments({
+    $or: [
+      { "featuredImage.url": url },
+      { "image.url": url },
+      { "ogImage.url": url },
+      { "gallery.url": url },
+      { content: { $regex: escapeRegex(url) } },
+    ],
+  });
+};
+
 /**
- * PUT /api/media/:id/replace  — upload a new file over an existing entry.
- * Keeps the same media id so every article referencing it picks up the new art.
+ * PUT /api/media/:id/replace  — upload a new file over an existing library entry.
+ * Articles store their own copy of an image URL, so they keep showing the old
+ * asset; it is only removed from Cloudinary when nothing references it.
  */
 exports.replaceMedia = async (req, res) => {
   try {
@@ -203,6 +220,8 @@ exports.replaceMedia = async (req, res) => {
     if (!media) return res.status(404).json({ success: false, message: "Not found" });
 
     const oldPublicId = media.public_id;
+    const oldUrl = media.url;
+    const oldResourceType = media.resourceType;
     const url = req.file.secure_url || req.file.path;
 
     Object.assign(media, {
@@ -215,13 +234,13 @@ exports.replaceMedia = async (req, res) => {
       height: req.file.height,
       bytes: req.file.bytes || req.file.size,
       originalName: req.file.originalname,
+      resourceType: req.file.mimetype?.startsWith("video/") ? "video" : "image",
     });
-
     await media.save();
 
-    if (oldPublicId) {
+    if (oldPublicId && (await countArticleReferences(oldUrl)) === 0) {
       cloudinary.uploader
-        .destroy(oldPublicId)
+        .destroy(oldPublicId, { resource_type: oldResourceType })
         .catch((e) => console.error("Cloudinary destroy failed:", e.message));
     }
 
@@ -235,11 +254,28 @@ exports.replaceMedia = async (req, res) => {
    DELETE
 ========================================================= */
 
-/** DELETE /api/media/:id */
+const isObjectId = (v) => /^[0-9a-fA-F]{24}$/.test(String(v || ""));
+
+/**
+ * DELETE /api/media/:id
+ * Refuses (409) while an article still shows the file, unless ?force=true.
+ */
 exports.deleteMedia = async (req, res) => {
   try {
+    if (!isObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
     const media = await Media.findById(req.params.id);
     if (!media) return res.status(404).json({ success: false, message: "Not found" });
+
+    const references = await countArticleReferences(media.url);
+    if (references && req.query.force !== "true") {
+      return res.status(409).json({
+        success: false,
+        message: `This file is used by ${references} article(s). Delete anyway with ?force=true.`,
+        references,
+      });
+    }
 
     if (media.public_id) {
       await cloudinary.uploader
@@ -258,12 +294,24 @@ exports.deleteMedia = async (req, res) => {
 /** POST /api/media/bulk-delete  { ids: [] } */
 exports.bulkDeleteMedia = async (req, res) => {
   try {
-    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).filter(isObjectId);
     if (!ids.length) {
       return res.status(400).json({ success: false, message: "ids array required" });
     }
 
     const items = await Media.find({ _id: { $in: ids } });
+
+    if (req.query.force !== "true") {
+      const counts = await Promise.all(items.map((m) => countArticleReferences(m.url)));
+      const inUse = items.filter((_, i) => counts[i] > 0).map((m) => m._id);
+      if (inUse.length) {
+        return res.status(409).json({
+          success: false,
+          message: `${inUse.length} of the selected files are used by articles. Delete anyway with ?force=true.`,
+          inUse,
+        });
+      }
+    }
 
     await Promise.all(
       items

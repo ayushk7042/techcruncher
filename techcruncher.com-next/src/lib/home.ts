@@ -1,0 +1,83 @@
+import type { HomeFeed, Homepage, News, RailKey } from "@/types/api";
+import { hasVideo, StoryPool, trimToRows } from "./news";
+
+/**
+ * Turns the automatic feed plus the editor's homepage curation into the exact
+ * set of stories each band renders. Every band draws from one pool, so no
+ * story appears twice (Most read is a ranking and is exempt).
+ */
+
+export interface HomeBands {
+  slides: News[];
+  featured: News[];
+  longRead: News | null;
+  latest: News[];
+  popular: News[];
+  editorsPicks: News[];
+  videos: News[];
+  more: News[];
+}
+
+type Sections = Partial<Homepage["sections"]>;
+
+const railEnabled = (sections: Sections, key: RailKey) => sections[key]?.enabled !== false;
+
+/** Manually curated stories for a rail, or null when it runs on auto. */
+const curated = (sections: Sections, key: RailKey): News[] | null => {
+  const rail = sections[key];
+  if (!rail || rail.mode !== "manual") return null;
+  const items = (rail.items || []).filter((item): item is News => Boolean(item && typeof item === "object" && item.slug));
+  return items.length ? items : null;
+};
+
+export function buildHomeBands(feed: HomeFeed, homepage: Homepage | null, recentWithMedia: News[]): HomeBands {
+  const sections: Sections = homepage?.sections || {};
+
+  const everything = [
+    ...feed.latest,
+    ...feed.dontMiss,
+    ...feed.featured,
+    ...feed.editorsPick,
+    ...feed.trending,
+    ...feed.breaking,
+  ];
+  const pool = new StoryPool(everything);
+  const supply = new Set(everything.map((n) => n._id)).size;
+
+  const slides = railEnabled(sections, "hero")
+    ? pool.claim(
+        [
+          ...(curated(sections, "hero") ?? [homepage?.mainTrending, feed.hero]),
+          ...(railEnabled(sections, "heroRail")
+            ? (curated(sections, "heroRail") ?? [...(homepage?.subTrending || []), ...feed.breaking, ...feed.trending])
+            : []),
+        ],
+        5,
+      )
+    : [];
+
+  const featuredCount = supply >= 16 ? 5 : supply >= 10 ? 3 : 2;
+  const featured = railEnabled(sections, "featured")
+    ? pool.claim(curated(sections, "featured") ?? feed.featured, featuredCount)
+    : [];
+
+  const longRead = railEnabled(sections, "dontMiss")
+    ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)
+    : null;
+
+  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 6) : [];
+
+  const popular = railEnabled(sections, "popular") ? (curated(sections, "popular") ?? feed.popular).slice(0, 5) : [];
+
+  const editorsPicks = railEnabled(sections, "editorsPicks")
+    ? pool.claim(curated(sections, "editorsPicks") ?? feed.editorsPick, 4)
+    : [];
+
+  const videos = pool.claim(recentWithMedia.filter(hasVideo), 4, false);
+
+  const more = railEnabled(sections, "moreStories")
+    ? trimToRows(pool.claim(curated(sections, "moreStories") ?? feed.dontMiss, 12))
+    : [];
+
+  return { slides, featured, longRead, latest, popular, editorsPicks, videos, more };
+}

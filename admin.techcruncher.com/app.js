@@ -3,8 +3,13 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
 
-const app = express();
 const errorHandler = require("./middlewares/error.middleware");
+const { loginLimiter, publicWriteLimiter } = require("./middlewares/rateLimit.middleware");
+
+const app = express();
+
+// Behind a reverse proxy in production; needed for correct req.ip (rate limits).
+app.set("trust proxy", 1);
 
 /* =========================
    MIDDLEWARES
@@ -13,26 +18,23 @@ const errorHandler = require("./middlewares/error.middleware");
 app.use(compression());
 app.use(cookieParser());
 
-const ALLOWED_ORIGINS = [
-  
-  "https://www.techcruncher.com",
-  "https://admin.techcruncher.com",
+const DEFAULT_ORIGINS = [
   "https://techcruncher.com",
   "https://www.techcruncher.com",
   "https://admin.techcruncher.com",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  "http://localhost:5180",
-  "http://localhost:4173",
-  "http://localhost:4174",
 ];
 
+const ALLOWED_ORIGINS = new Set([
+  ...DEFAULT_ORIGINS,
+  ...(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+]);
+
 /**
- * Vite moves to the next free port when the default is taken, so a fixed list
- * of dev ports breaks the moment two projects run at once. Outside production
- * any localhost origin is accepted; the published list still governs the
- * deployed API.
+ * Dev servers move to the next free port when the default is taken, so outside
+ * production any localhost origin is accepted.
  */
 const isDevOrigin = (origin) =>
   process.env.NODE_ENV !== "production" &&
@@ -40,32 +42,46 @@ const isDevOrigin = (origin) =>
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Same-origin and server-to-server calls arrive without an Origin header.
-      if (!origin || ALLOWED_ORIGINS.includes(origin) || isDevOrigin(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin not allowed by CORS: ${origin}`));
-    },
+    // Same-origin and server-to-server calls arrive without an Origin header.
+    // Disallowed origins simply get no CORS headers (the browser blocks them).
+    origin: (origin, callback) =>
+      callback(null, !origin || ALLOWED_ORIGINS.has(origin) || isDevOrigin(origin)),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Disposition"],
     credentials: true,
   })
 );
 
-// Articles carry full rich-text HTML, so the default 100 kb body cap is too low.
-app.use(express.json({ limit: "25mb" }));
-app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+// Articles and homepage layouts carry full rich-text HTML; everything else is small.
+app.use(["/api/news", "/api/homepage"], express.json({ limit: "25mb" }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
+
+/* =========================
+   RATE LIMITS
+========================= */
+
+app.use("/api/auth/login", loginLimiter);
+app.post(
+  [
+    "/api/contact",
+    "/api/newsletter/subscribe",
+    "/api/newsletter/unsubscribe",
+    "/api/news/:slug/like",
+    "/api/news/:slug/share",
+    "/api/ads/:id/impression",
+    "/api/ads/:id/click",
+  ],
+  publicWriteLimiter
+);
 
 /* =========================
    ROUTES
 ========================= */
 
-app.get("/api/health", (req, res) =>
-  res.json({ status: "ok", uptime: process.uptime() })
-);
+app.get("/api/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
 
-/* ---- existing ---- */
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/contact", require("./routes/contact.routes"));
 app.use("/api/categories", require("./routes/category.routes"));
@@ -73,13 +89,13 @@ app.use("/api/news", require("./routes/news.routes"));
 app.use("/api/homepage", require("./routes/homepage.routes"));
 app.use("/api/dashboard", require("./routes/dashboard.routes"));
 app.use("/api/auto-news", require("./routes/autoNews.routes"));
-
-/* ---- added ---- */
 app.use("/api/tags", require("./routes/tag.routes"));
 app.use("/api/media", require("./routes/media.routes"));
 app.use("/api/ads", require("./routes/advertisement.routes"));
 app.use("/api/import", require("./routes/import.routes"));
 app.use("/api/newsletter", require("./routes/newsletter.routes"));
+
+app.use("/api", (req, res) => res.status(404).json({ success: false, message: "Not found" }));
 
 /* =========================
    ERROR HANDLER (LAST)

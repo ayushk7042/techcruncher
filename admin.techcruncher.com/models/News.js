@@ -96,6 +96,13 @@ const newsSchema = new mongoose.Schema(
 
     featuredImage: imageSchema,
 
+    // Legacy lead image written by the original admin panel ({ url, public_id }).
+    // Declared so strict-mode saves keep it and projections can select it; new
+    // articles use `featuredImage`.
+    image: imageSchema,
+    imageRedirectUrl: String,
+    isSponsored: { type: Boolean, default: false },
+
     affiliateLinks: [affiliateSchema],
 
     sourceLinks: [String],
@@ -145,7 +152,9 @@ const newsSchema = new mongoose.Schema(
     createdBy: {
       type: String,
       enum: ["admin", "ai", "import"],
-      default: "ai",
+      // Defaults are applied when legacy documents are hydrated, so this must be
+      // the safe value; AI and import paths set their own.
+      default: "admin",
     },
 
     status: {
@@ -215,11 +224,18 @@ const newsSchema = new mongoose.Schema(
 
     /* ================= NEW: PUBLISHING ================= */
 
-    publishedDate: { type: Date, default: Date.now, index: true },
+    // No schema default: Mongoose applies defaults when hydrating documents, so a
+    // default would silently re-date legacy articles on their first save.
+    // buildNewsPayload sets it on create.
+    publishedDate: { type: Date, index: true },
     scheduledAt: { type: Date, default: null, index: true },
     updatedDate: Date,
 
     readTime: { type: Number, default: 0 }, // minutes
+
+    // Set once subscribers have been emailed about this article, so a
+    // re-publish or a second job run never mails them twice.
+    newsletterSentAt: { type: Date, default: null },
 
     /* ================= NEW: ENGAGEMENT ================= */
 

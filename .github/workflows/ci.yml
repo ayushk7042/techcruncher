@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: admin.techcruncher.com/package-lock.json
 
@@ -53,17 +53,28 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # isomorphic-dompurify/jsdom need Node ^22.22.2 or >=24.15; on 20 the
+          # article page fails at build time (webidl.util.markAsUncloneable).
+          node-version: 24
 
-      - name: Install dependencies and build frontend when present
+      - name: Lint, typecheck and build frontend when present
         shell: bash
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
         run: |
           set -euo pipefail
-          if [[ ! -f techcruncher.com/package.json ]]; then
+          # The Next.js rewrite lives beside the legacy Vite app until it replaces it.
+          dir=""
+          for candidate in techcruncher.com-next techcruncher.com; do
+            if [[ -f "$candidate/package.json" ]]; then dir="$candidate"; break; fi
+          done
+          if [[ -z "$dir" ]]; then
             echo "Frontend is not present yet; skipping frontend build."
             exit 0
           fi
 
-          cd techcruncher.com
+          cd "$dir"
           npm ci
+          if npm run | grep -q "^  lint$"; then npm run lint; fi
+          if npm run | grep -q "^  typecheck$"; then npm run typecheck; fi
           npm run build
