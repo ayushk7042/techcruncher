@@ -30,7 +30,17 @@ const curated = (sections: Sections, key: RailKey): News[] | null => {
   return items.length ? items : null;
 };
 
-export function buildHomeBands(feed: HomeFeed, homepage: Homepage | null, recentWithMedia: News[]): HomeBands {
+export function buildHomeBands(
+  feed: HomeFeed,
+  homepage: Homepage | null,
+  recentWithMedia: News[],
+  options: {
+    /** Fixed Featured reporting size, used when banner rails share its row. */
+    featuredCount?: number;
+    /** Keep Featured reporting to whole rows of this many columns. */
+    featuredColumns?: number;
+  } = {},
+): HomeBands {
   const sections: Sections = homepage?.sections || {};
 
   const everything = [
@@ -56,10 +66,13 @@ export function buildHomeBands(feed: HomeFeed, homepage: Homepage | null, recent
       )
     : [];
 
-  const featuredCount = supply >= 16 ? 5 : supply >= 10 ? 3 : 2;
-  const featured = railEnabled(sections, "featured")
+  const featuredCount = options.featuredCount ?? (supply >= 16 ? 5 : supply >= 10 ? 3 : 2);
+  const claimedFeatured = railEnabled(sections, "featured")
     ? pool.claim(curated(sections, "featured") ?? feed.featured, featuredCount)
     : [];
+  // Stories dropped to keep whole rows are released to the bands below.
+  const featured = options.featuredColumns ? trimToRows(claimedFeatured, [options.featuredColumns]) : claimedFeatured;
+  pool.release(claimedFeatured.slice(featured.length));
 
   const longRead = railEnabled(sections, "dontMiss")
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)

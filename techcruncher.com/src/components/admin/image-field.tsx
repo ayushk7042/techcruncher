@@ -9,7 +9,7 @@ import { errorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useDebounced } from "@/hooks/use-debounced";
 import { useToast } from "./toast";
-import { LoadingBlock, Modal, SimplePager, Spinner } from "./ui";
+import { LoadingBlock, Modal, SimplePager, Spinner, Toggle } from "./ui";
 
 /* ------------------------------------------------------------------ */
 /* Media library picker                                                */
@@ -141,10 +141,12 @@ interface ImageFieldProps {
   folder?: string;
   /** Show alt / caption / credit inputs under the preview. */
   withMeta?: boolean;
+  /** Show the click-through link inputs (article images). */
+  withRedirect?: boolean;
   hint?: string;
 }
 
-export function ImageField({ label, value, onChange, folder = "articles", withMeta = true, hint }: ImageFieldProps) {
+export function ImageField({ label, value, onChange, folder = "articles", withMeta = true, withRedirect = false, hint }: ImageFieldProps) {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -224,6 +226,22 @@ export function ImageField({ label, value, onChange, folder = "articles", withMe
               value={value.caption || ""}
               onChange={(e) => patch({ caption: e.target.value })}
             />
+          </div>
+        )}
+        {withRedirect && value?.url && (
+          <div className="space-y-2 border-t border-line pt-2">
+            <input
+              className="adm-input"
+              type="url"
+              placeholder="Redirect link — https://"
+              aria-label="Image redirect link"
+              value={value.redirectUrl || ""}
+              onChange={(e) => patch({ redirectUrl: e.target.value })}
+            />
+            {value.redirectUrl && (
+              <Toggle label="Open link in a new tab" checked={value.openInNewTab !== false} onChange={(openInNewTab) => patch({ openInNewTab })} />
+            )}
+            <p className="adm-hint mt-0">Readers who click the image on the article page go to this link.</p>
           </div>
         )}
       </div>

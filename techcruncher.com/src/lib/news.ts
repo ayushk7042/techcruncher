@@ -288,4 +288,9 @@ export class StoryPool {
   markUsed(items: (News | null | undefined)[]) {
     items.forEach((item) => item?._id && this.used.add(item._id));
   }
+
+  /** Returns claimed stories that ended up not rendering, so later bands can use them. */
+  release(items: News[]) {
+    items.forEach((item) => this.used.delete(item._id));
+  }
 }

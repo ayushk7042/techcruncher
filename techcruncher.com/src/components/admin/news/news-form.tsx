@@ -8,7 +8,9 @@ import { useToast } from "@/components/admin/toast";
 import { Card, Field, TextField } from "@/components/admin/ui";
 import { adminApi, type NewsPayload } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
+import type { Editor } from "@tiptap/react";
 import type { News } from "@/types/api";
+import { ArticleImagesCard } from "./article-images-card";
 import { ConversionCard } from "./conversion-card";
 import { MediaCard } from "./media-card";
 import { emptyForm, fromNews, slugify, toPayload, validate, type FormErrors, type SetField } from "./news-form-state";
@@ -29,6 +31,8 @@ export function NewsForm({ initial }: { initial?: News }) {
   const [form, setForm] = useState(() => (initial ? fromNews(initial) : emptyForm()));
   const [baseline, setBaseline] = useState(form);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [htmlMode, setHtmlMode] = useState(false);
   // new articles follow the title until the slug is edited by hand
   const [slugFollowsTitle, setSlugFollowsTitle] = useState(isCreate);
 
@@ -151,7 +155,8 @@ export function NewsForm({ initial }: { initial?: News }) {
           </Field>
         </Card>
 
-        <RichTextEditor value={form.content} onChange={setContent} />
+        <RichTextEditor value={form.content} onChange={setContent} onEditor={setEditor} onHtmlModeChange={setHtmlMode} />
+        <ArticleImagesCard {...sectionProps} editor={editor} htmlMode={htmlMode} />
 
         <SeoCard {...sectionProps} />
         <MediaCard {...sectionProps} />

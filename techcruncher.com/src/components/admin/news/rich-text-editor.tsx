@@ -35,6 +35,34 @@ type BlockType = "paragraph" | "h2" | "h3";
 
 const normalizeHref = (href: string) => (/^(https?:|mailto:|tel:|\/|#)/i.test(href) ? href : `https://${href}`);
 
+/**
+ * Body image with a click-through link. The link is stored as `data-redirect`
+ * (the API sanitiser keeps it) and the article page wraps the image in an
+ * anchor. An image pasted inside `<a>` adopts that href, since an image node
+ * cannot carry the link mark.
+ */
+const ArticleImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      redirect: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-redirect") ||
+          (element.parentElement?.tagName === "A" ? element.parentElement.getAttribute("href") : null),
+        renderHTML: (attributes: { redirect?: string | null }) => (attributes.redirect ? { "data-redirect": attributes.redirect } : {}),
+      },
+      // Only written when off, so the default (new tab) keeps the markup clean.
+      newTab: {
+        default: true,
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-new-tab") !== "false",
+        renderHTML: (attributes: { newTab?: boolean; redirect?: string | null }) =>
+          attributes.redirect && attributes.newTab === false ? { "data-new-tab": "false" } : {},
+      },
+    };
+  },
+});
+
 function useToolbarState(editor: Editor | null) {
   return useEditorState({
     editor,
@@ -52,6 +80,8 @@ function useToolbarState(editor: Editor | null) {
       orderedList: Boolean(current?.isActive("orderedList")),
       codeBlock: Boolean(current?.isActive("codeBlock")),
       link: Boolean(current?.isActive("link")),
+      image: Boolean(current?.isActive("image")),
+      imageLinked: Boolean(current?.isActive("image") && current.getAttributes("image").redirect),
       canUndo: Boolean(current?.can().undo()),
       canRedo: Boolean(current?.can().redo()),
     }),
@@ -63,7 +93,18 @@ function useToolbarState(editor: Editor | null) {
  * and does not round-trip it through the editor schema, so markup the editor
  * does not model (tables, embeds) survives a save.
  */
-export function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+export function RichTextEditor({
+  value,
+  onChange,
+  onEditor,
+  onHtmlModeChange,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  /** Hands the editor instance up, so other cards can read and edit body images. */
+  onEditor?: (editor: Editor | null) => void;
+  onHtmlModeChange?: (htmlMode: boolean) => void;
+}) {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
@@ -81,12 +122,16 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] }, link: false }),
       Link.configure({ openOnClick: false, autolink: true, defaultProtocol: "https" }),
-      Image,
+      ArticleImage,
     ],
     content: initialContent,
     editorProps: { attributes: { class: "article-body", "aria-label": "Article body" } },
     onUpdate: ({ editor: current }) => onChangeRef.current(current.getHTML()),
   });
+
+  useEffect(() => {
+    onEditor?.(editor);
+  }, [editor, onEditor]);
 
   const state = useToolbarState(editor);
   const disabled = !editor || htmlMode;
@@ -99,6 +144,17 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
 
   const editLink = () => {
     if (!editor) return;
+    if (editor.isActive("image")) {
+      const current: unknown = editor.getAttributes("image").redirect;
+      const input = window.prompt(
+        "Image redirect link — readers who click this image go here (leave empty to remove)",
+        typeof current === "string" ? current : "https://",
+      );
+      if (input === null) return;
+      const redirect = input.trim() && input.trim() !== "https://" ? normalizeHref(input.trim()) : null;
+      editor.chain().focus().updateAttributes("image", { redirect }).run();
+      return;
+    }
     const previous: unknown = editor.getAttributes("link").href;
     const input = window.prompt("Link URL (leave empty to remove the link)", typeof previous === "string" ? previous : "https://");
     if (input === null) return;
@@ -109,7 +165,12 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
 
   const insertImages = (images: ImageAsset[]) => {
     images.forEach((image) => {
-      if (image.url) editor?.chain().focus().setImage({ src: image.url, alt: image.alt || "" }).run();
+      if (!image.url) return;
+      editor
+        ?.chain()
+        .focus()
+        .insertContent({ type: "image", attrs: { src: image.url, alt: image.alt || "", redirect: image.redirectUrl || null } })
+        .run();
     });
   };
 
@@ -129,6 +190,7 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
     // entering rich mode re-parses the raw HTML without reporting a change
     if (htmlMode) editor?.commands.setContent(value, { emitUpdate: false });
     setHtmlMode(!htmlMode);
+    onHtmlModeChange?.(!htmlMode);
   };
 
   return (
@@ -193,12 +255,22 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
         />
         <IconButton label="Divider" icon={Minus} disabled={disabled} onClick={() => editor?.chain().focus().setHorizontalRule().run()} />
         <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
-        <IconButton label={state?.link ? "Edit link" : "Add link"} icon={LinkIcon} disabled={disabled} pressed={state?.link} onClick={editLink} />
         <IconButton
-          label="Remove link"
+          label={state?.image ? (state.imageLinked ? "Edit image redirect link" : "Add image redirect link") : state?.link ? "Edit link" : "Add link"}
+          icon={LinkIcon}
+          disabled={disabled}
+          pressed={state?.image ? state.imageLinked : state?.link}
+          onClick={editLink}
+        />
+        <IconButton
+          label={state?.image ? "Remove image redirect link" : "Remove link"}
           icon={Unlink}
-          disabled={disabled || !state?.link}
-          onClick={() => editor?.chain().focus().extendMarkRange("link").unsetLink().run()}
+          disabled={disabled || !(state?.image ? state.imageLinked : state?.link)}
+          onClick={() =>
+            state?.image
+              ? editor?.chain().focus().updateAttributes("image", { redirect: null }).run()
+              : editor?.chain().focus().extendMarkRange("link").unsetLink().run()
+          }
         />
         <button
           type="button"

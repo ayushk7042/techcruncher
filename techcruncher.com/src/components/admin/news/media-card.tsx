@@ -44,6 +44,14 @@ function GalleryEditor({ images, onChange }: { images: ImageAsset[]; onChange: (
                   value={image.alt || ""}
                   onChange={(event) => patch(index, { alt: event.target.value })}
                 />
+                <input
+                  className="adm-input"
+                  type="url"
+                  placeholder="Redirect link — https:// (optional)"
+                  aria-label={`Redirect link for image ${index + 1}`}
+                  value={image.redirectUrl || ""}
+                  onChange={(event) => patch(index, { redirectUrl: event.target.value })}
+                />
               </div>
               <div className="flex shrink-0 gap-0.5">
                 <IconButton label="Move up" icon={ArrowUp} disabled={index === 0} onClick={() => onChange(moveItem(images, index, index - 1))} />

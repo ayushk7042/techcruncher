@@ -41,7 +41,7 @@ export interface GalleryTileDraft {
   link: string;
 }
 
-export interface GalleryDraft extends Omit<HomepageGallery, "items"> {
+export interface GalleryDraft extends Omit<HomepageGallery, "items" | "rails"> {
   items: GalleryTileDraft[];
 }
 

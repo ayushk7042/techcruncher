@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAdminAuth } from "@/components/admin/auth-provider";
 import { Spinner } from "@/components/admin/ui";
-import { site } from "@/config/site";
+import { Logo } from "@/components/site/logo";
 import { errorMessage } from "@/lib/api/client";
 
 function LoginForm() {
@@ -40,12 +40,7 @@ function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="w-full max-w-sm">
-      <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="block h-6 w-[3px] bg-accent" />
-        <span className="font-display text-[24px] font-extrabold uppercase tracking-[-0.035em]" style={{ fontStretch: "80%" }}>
-          {site.name}
-        </span>
-      </div>
+      <Logo href={null} />
       <h1 className="headline mt-8 text-[34px] uppercase">Newsroom sign-in</h1>
       <p className="mt-2 text-[13.5px] text-ink-soft">Editors and administrators only.</p>
 

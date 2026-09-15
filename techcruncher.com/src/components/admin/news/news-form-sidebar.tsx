@@ -101,7 +101,7 @@ export function TaxonomyCard({ form, set, errors, categories }: SectionProps & {
 export function FeaturedImageCard({ form, set }: SectionProps) {
   return (
     <Card title="Featured image">
-      <ImageField label="Image" value={form.featuredImage} onChange={(image) => set("featuredImage", image)} />
+      <ImageField label="Image" withRedirect value={form.featuredImage} onChange={(image) => set("featuredImage", image)} />
     </Card>
   );
 }

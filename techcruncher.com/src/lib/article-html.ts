@@ -68,7 +68,10 @@ function blocksToHtml(blocks: ContentBlock[] = []): string {
           const url = str(value) || str(data.url);
           if (!url) return "";
           const caption = str(data.caption) || str(block.meta?.caption);
-          return `<figure><img src="${escapeHtml(url)}" alt="${escapeHtml(str(data.alt) || caption)}">${
+          const redirect = str(data.redirectUrl) || str(block.redirectUrl);
+          return `<figure><img src="${escapeHtml(url)}" alt="${escapeHtml(str(data.alt) || caption)}"${
+            redirect ? ` data-redirect="${escapeHtml(redirect)}"` : ""
+          }>${
             caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ""
           }</figure>`;
         }
@@ -95,6 +98,23 @@ function blocksToHtml(blocks: ContentBlock[] = []): string {
       }
     })
     .join("\n");
+}
+
+/**
+ * Body images carry their click-through link as `data-redirect` (set in the
+ * admin editor). An optional `<a …>` right before the image is captured so an
+ * image that is already a link is left alone instead of nesting anchors.
+ */
+const IMAGE_WITH_REDIRECT = /(<a\b[^>]*>\s*)?(<img\b[^>]*?\sdata-redirect="([^"]*)"[^>]*>)/gi;
+
+// Only web and site-relative links; the attribute is already entity-escaped by the sanitiser.
+const SAFE_REDIRECT = /^(https?:\/\/|\/(?!\/))/i;
+
+function linkImage(match: string, openAnchor: string | undefined, img: string, href: string): string {
+  if (openAnchor || !SAFE_REDIRECT.test(href.trim())) return match;
+  const newTab = !/\sdata-new-tab="false"/i.test(img);
+  const attrs = newTab ? ' target="_blank" rel="noopener noreferrer nofollow"' : "";
+  return `<a href="${href.trim()}"${attrs} class="image-link">${img}</a>`;
 }
 
 const slugify = (text: string) =>
@@ -139,6 +159,7 @@ export function renderArticleHtml(news: Pick<News, "content" | "contentBlocks" |
       toc.push({ id, text, level: Number(level) as 2 | 3 });
       return existing ? match : `<h${level}${attrs} id="${id}">${inner}</h${level}>`;
     })
+    .replace(IMAGE_WITH_REDIRECT, linkImage)
     .replace(/<table/gi, '<div class="table-scroll"><table')
     .replace(/<\/table>/gi, "</table></div>");
 

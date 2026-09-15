@@ -18,6 +18,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { LogoMark, Wordmark } from "@/components/site/logo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -95,12 +96,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link href="/admin/dashboard" className="flex items-center gap-2">
-      <span aria-hidden="true" className="block h-5 w-[3px] bg-accent" />
-      <span className="font-display text-[18px] font-extrabold uppercase tracking-[-0.035em]" style={{ fontStretch: "80%" }}>
-        {site.name}
-      </span>
-      <span className="eyebrow ml-1 border border-line px-1 py-0.5">Admin</span>
+    <Link href="/admin/dashboard" aria-label={`${site.name} admin`} className="flex items-center gap-2">
+      <LogoMark className="h-5" />
+      <Wordmark size="sm" />
+      <span className="eyebrow ml-auto border border-line px-1 py-0.5">Admin</span>
     </Link>
   );
 }

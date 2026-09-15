@@ -3,6 +3,7 @@ import { site } from "@/config/site";
 import type { Category, Tag } from "@/types/api";
 import { SocialIcon } from "@/components/ui/social-icon";
 import { categoryHref, tagHref } from "@/lib/news";
+import { Logo } from "./logo";
 import { NewsletterCard } from "./newsletter-card";
 
 const linkClass = "text-[13px] text-ink-soft transition-colors hover:text-accent";
@@ -46,10 +47,7 @@ export function Footer({ categories, tags }: { categories: Category[]; tags: Tag
       <div className="border-b border-line">
         <div className="container grid gap-9 py-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-5">
-            <p className="headline text-[38px] uppercase sm:text-[46px]" style={{ fontStretch: "80%" }}>
-              {site.name}
-              <span className="text-accent">.</span>
-            </p>
+            <Logo size="lg" />
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-ink-soft">
               Independent reporting on the technology, business and culture shaping what comes next — written plainly,
               sourced openly, corrected in public.

@@ -3,7 +3,7 @@
 import { Bookmark, ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { sections } from "@/config/site";
 import type { Category, News } from "@/types/api";
 import { useBookmarks } from "@/hooks/use-bookmarks";
@@ -53,6 +53,14 @@ export function Header({ categories, headline }: HeaderProps) {
   const browseRef = useRef<HTMLDivElement>(null);
   const closeBrowse = useCallback(() => setBrowseOpen(false), []);
   useDismiss(browseOpen, browseRef, closeBrowse);
+
+  // The toggle counts as inside the search panel: otherwise its mousedown closes
+  // the panel and its click reopens it, which reads as "needs a double click".
+  const searchPanelRef = useRef<HTMLDivElement>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
+  const searchRefs = useMemo(() => [searchPanelRef, searchToggleRef], []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+  useDismiss(searchOpen, searchRefs, closeSearch);
   useScrollLock(drawerOpen);
 
   const menuCategories = categories.filter((c) => c.showInMenu !== false && !c.parent);
@@ -139,6 +147,7 @@ export function Header({ categories, headline }: HeaderProps) {
 
             <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
               <button
+                ref={searchToggleRef}
                 type="button"
                 aria-label="Search"
                 aria-expanded={searchOpen}
@@ -170,8 +179,8 @@ export function Header({ categories, headline }: HeaderProps) {
           </div>
 
           {searchOpen && (
-            <div className="pb-3 md:hidden">
-              <SearchBox topics={menuCategories} autoFocus onNavigate={() => setSearchOpen(false)} />
+            <div ref={searchPanelRef} className="pb-3 md:hidden">
+              <SearchBox topics={menuCategories} autoFocus onNavigate={closeSearch} onDismiss={closeSearch} />
             </div>
           )}
         </div>

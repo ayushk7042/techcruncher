@@ -34,6 +34,16 @@ interface FormState {
 
 type Errors = Partial<Record<"name" | "position" | "creative" | "schedule", string>>;
 
+/** Slots whose image creatives are resized to the section on the homepage, whatever was uploaded. */
+const POSITION_SIZE_HINTS: Partial<Record<AdPosition, string>> = {
+  "home-top":
+    "Full-width strip under the topics bar (970 × 140, taller on phones). The whole image is fitted inside, never cropped; about 1940 × 280 px fills it edge to edge. Two or more active ads here rotate automatically.",
+  "home-gallery-left":
+    "Left column beside Featured reporting, as tall as that section on desktop. The whole image is fitted inside, never cropped; a portrait image (about 600 × 1200 px) fills it best. Two or more active ads rotate automatically.",
+  "home-gallery-right":
+    "Right column beside Featured reporting, as tall as that section on desktop. The whole image is fitted inside, never cropped; a portrait image (about 600 × 1200 px) fills it best. Two or more active ads rotate automatically.",
+};
+
 const toForm = (ad?: Advertisement): FormState => ({
   name: ad?.name ?? "",
   position: ad?.position ?? "",
@@ -142,7 +152,12 @@ export function AdFormModal({ ad, onClose }: { ad?: Advertisement; onClose: () =
         <Card title="Placement">
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Name" required value={form.name} error={errors.name} onChange={(e) => set("name", e.target.value)} />
-            <Field label="Position" error={errors.position} htmlFor={`${formId}-position`}>
+            <Field
+              label="Position"
+              error={errors.position}
+              hint={form.position ? POSITION_SIZE_HINTS[form.position] : undefined}
+              htmlFor={`${formId}-position`}
+            >
               <select
                 id={`${formId}-position`}
                 className="adm-select font-mono text-[12px]"

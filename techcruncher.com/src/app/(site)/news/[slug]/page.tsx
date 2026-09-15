@@ -28,6 +28,7 @@ import { ApiError } from "@/lib/api/client";
 import { publicApi } from "@/lib/api/public";
 import { getPopular } from "@/lib/api/server-data";
 import { renderArticleHtml } from "@/lib/article-html";
+import { cn } from "@/lib/cn";
 import { compactNumber, formatDate, formatDateTime, readTimeLabel } from "@/lib/format";
 import {
   authorName,
@@ -237,7 +238,12 @@ export default async function ArticlePage({ params }: { params: Promise<Params> 
         {image?.url && (
           <figure className="mt-8">
             {leadRedirect ? (
-              <a href={leadRedirect} target="_blank" rel="noopener noreferrer nofollow" className="block">
+              <a
+                href={leadRedirect}
+                target={image.openInNewTab === false ? undefined : "_blank"}
+                rel={cn("noopener noreferrer", image.nofollow !== false && "nofollow")}
+                className="block cursor-pointer transition-opacity hover:opacity-95"
+              >
                 {leadImage}
               </a>
             ) : (

@@ -126,6 +126,17 @@ export const emptyForm = (): NewsFormState => ({
   readTime: "",
 });
 
+/**
+ * The article's main image as the public site resolves it first: `featuredImage`,
+ * else the legacy `image` older and imported articles still carry (without
+ * this they opened in the panel with no main image). Older articles kept the
+ * lead image's link in `imageRedirectUrl`.
+ */
+function leadImageOf(news: News): ImageAsset | undefined {
+  const lead = news.featuredImage?.url ? news.featuredImage : news.image?.url ? news.image : undefined;
+  return lead ? { ...lead, redirectUrl: lead.redirectUrl || news.imageRedirectUrl || "" } : undefined;
+}
+
 export function fromNews(news: News): NewsFormState {
   const base = emptyForm();
   const tagNames = tagsOf(news).map((tag) => tag.name);
@@ -144,7 +155,7 @@ export function fromNews(news: News): NewsFormState {
     category: idOf(news.category),
     subCategory: idOf(news.subCategory),
     tags: tagNames.length ? tagNames : news.tagNames || [],
-    featuredImage: news.featuredImage?.url ? news.featuredImage : undefined,
+    featuredImage: leadImageOf(news),
     featured: Boolean(news.featured),
     trending: Boolean(news.trending),
     popular: Boolean(news.popular),
@@ -224,6 +235,10 @@ export function toPayload(form: NewsFormState, isCreate: boolean): NewsPayload {
     tags: form.tags,
     // an empty object is how the API is told to remove an image
     featuredImage: form.featuredImage ?? {},
+    // The form shows a legacy `image` as the main image, so removing it there must remove it here too.
+    ...(form.featuredImage ? {} : { image: null }),
+    // kept in step so the legacy field can never resurrect a link the editor removed
+    imageRedirectUrl: form.featuredImage?.redirectUrl?.trim() || "",
 
     featured: form.featured,
     trending: form.trending,
@@ -333,7 +348,9 @@ export function blocksToHtml(blocks: ContentBlock[] = []): string {
           const src = readString(block.value) || readString(source.url);
           if (!/^https?:\/\//i.test(src)) return "";
           const alt = readString(source.alt) || readString(meta.alt);
-          return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}">`;
+          // legacy blocks kept an image's click-through link beside it; carry it into the editor
+          const redirect = readString(source.redirectUrl) || readString((block as { redirectUrl?: unknown }).redirectUrl);
+          return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${redirect ? ` data-redirect="${escapeHtml(redirect)}"` : ""}>`;
         }
         default:
           return "";

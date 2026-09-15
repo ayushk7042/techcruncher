@@ -306,6 +306,21 @@ export interface HomepageGalleryItem {
   order: number;
 }
 
+/** Banner/ad column beside the homepage story grid (home-gallery-left / home-gallery-right). */
+export interface HomepageGalleryRail {
+  enabled: boolean;
+  width: "narrow" | "medium" | "wide";
+  type: "ad" | "banner";
+  size: "auto" | "300x250" | "300x600" | "160x600";
+  adPosition: string;
+  heading: string;
+  image: string;
+  imageAlt: string;
+  link: string;
+  openInNewTab: boolean;
+  stretch: boolean;
+}
+
 export interface HomepageGallery {
   enabled: boolean;
   title: string;
@@ -314,6 +329,8 @@ export interface HomepageGallery {
   actionLink: string;
   source: "auto" | "manual";
   items: HomepageGalleryItem[];
+  /** Read-only here: the admin payload never sends rails. */
+  rails?: { left?: HomepageGalleryRail; right?: HomepageGalleryRail };
 }
 
 export interface CategorySection<T = News> {

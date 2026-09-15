@@ -2,13 +2,21 @@
 
 import { useEffect, type RefObject } from "react";
 
-/** Closes a menu on outside mousedown and on Escape. */
-export function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, onClose: () => void) {
+type Refs = RefObject<HTMLElement | null> | RefObject<HTMLElement | null>[];
+
+/**
+ * Closes a menu on outside mousedown and on Escape. Pass every element that
+ * counts as "inside" — including the button that toggles the menu, otherwise
+ * that button's mousedown closes the menu and its click immediately reopens it.
+ */
+export function useDismiss(open: boolean, refs: Refs, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
+    const list = Array.isArray(refs) ? refs : [refs];
 
     const onPointer = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+      const target = event.target as Node;
+      if (!list.some((ref) => ref.current?.contains(target))) onClose();
     };
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
 
@@ -18,7 +26,7 @@ export function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, on
       document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, ref, onClose]);
+  }, [open, refs, onClose]);
 }
 
 /** Locks page scroll while a drawer or dialog is open. */

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Clock3, Loader2, Search, TrendingUp, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Category } from "@/types/api";
 import { SmartImage } from "@/components/ui/smart-image";
 import { useDebounced } from "@/hooks/use-debounced";
@@ -22,9 +22,11 @@ interface SearchBoxProps {
   hotkey?: boolean;
   className?: string;
   onNavigate?: () => void;
+  /** Called when the reader cancels (X or Escape). Also makes the X always visible, as a close button. */
+  onDismiss?: () => void;
 }
 
-export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false, className, onNavigate }: SearchBoxProps) {
+export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false, className, onNavigate, onDismiss }: SearchBoxProps) {
   const router = useRouter();
   const listId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,20 @@ export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false,
     staleTime: 30_000,
   });
 
-  useDismiss(open, wrapperRef, () => setOpen(false));
+  // Outside click only collapses the panel; the browser already moves focus away.
+  const collapse = useCallback(() => {
+    setOpen(false);
+    setActive(-1);
+  }, []);
+  useDismiss(open, wrapperRef, collapse);
+
+  /** Cancel: collapse, drop focus (so nothing reopens it) and hand control back to the parent. */
+  const cancel = (clear: boolean) => {
+    collapse();
+    if (clear) setValue("");
+    inputRef.current?.blur();
+    onDismiss?.();
+  };
 
   useEffect(() => {
     if (!hotkey) return;
@@ -77,7 +92,8 @@ export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false,
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      setOpen(false);
+      event.stopPropagation();
+      cancel(false);
       return;
     }
     if (!enabled || !results.length) return;
@@ -120,6 +136,8 @@ export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false,
           aria-autocomplete="list"
           role="combobox"
           onFocus={() => setOpen(true)}
+          // A focused input fires no second focus event, so a click has to reopen it too.
+          onClick={() => setOpen(true)}
           onChange={(event) => {
             setValue(event.target.value);
             setActive(-1);
@@ -128,14 +146,13 @@ export function SearchBox({ topics = [], size = "md", autoFocus, hotkey = false,
           onKeyDown={onKeyDown}
           className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-mute [&::-webkit-search-cancel-button]:hidden"
         />
-        {value ? (
+        {value || onDismiss ? (
           <button
             type="button"
-            aria-label="Clear search"
-            onClick={() => {
-              setValue("");
-              inputRef.current?.focus();
-            }}
+            aria-label={onDismiss ? "Close search" : "Clear search"}
+            // Keep the input from blurring first, so one click cancels in one go.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => cancel(true)}
             className="p-1 text-ink-mute transition-colors hover:text-ink"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />

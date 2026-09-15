@@ -1,14 +1,21 @@
 import { AdSlot } from "@/components/site/ad-slot";
-import { ArticleCard, ArticleListRow, ArticleRankRow, ArticleTileCard, ArticleVideoCard, ArticleWideRow } from "@/components/site/cards";
+import { ArticleListRow, ArticleRankRow, ArticleTileCard, ArticleVideoCard, ArticleWideRow } from "@/components/site/cards";
 import { Rail, SectionHeader } from "@/components/site/headers";
 import { CategoryGrid } from "@/components/site/home/category-grid";
+import {
+  FeaturedBand,
+  featuredLayout,
+  type RailSide,
+  type ResolvedRail,
+  type ResolvedRails,
+} from "@/components/site/home/featured-band";
 import { HeroSlider } from "@/components/site/home/hero-slider";
 import { LongRead } from "@/components/site/home/long-read";
 import { TopicTape } from "@/components/site/home/topic-tape";
 import { NewsletterCard } from "@/components/site/newsletter-card";
 import { EmptyState } from "@/components/site/states";
 import { site } from "@/config/site";
-import type { Homepage, News } from "@/types/api";
+import { AD_POSITIONS, type AdPosition, type Homepage, type News } from "@/types/api";
 import { publicApi } from "@/lib/api/public";
 import { getCategories, getHomeFeed } from "@/lib/api/server-data";
 import { buildHomeBands } from "@/lib/home";
@@ -34,6 +41,46 @@ async function loadRecentWithMedia(): Promise<News[]> {
   }
 }
 
+const RAIL_POSITIONS: Record<RailSide, AdPosition> = { left: "home-gallery-left", right: "home-gallery-right" };
+
+const isAdPosition = (value: string): value is AdPosition => (AD_POSITIONS as readonly string[]).includes(value);
+
+/**
+ * Resolves the Homegallery Left / Right rails before render, so Featured
+ * reporting is laid out for the rails that will actually show instead of
+ * reflowing once an ad loads. Rails are a desktop column, so desktop
+ * targeting decides whether one takes space.
+ */
+async function loadGalleryRails(homepage: Homepage | null): Promise<ResolvedRails> {
+  const sides: RailSide[] = ["left", "right"];
+  const entries = await Promise.all(
+    sides.map(async (side): Promise<[RailSide, ResolvedRail | null]> => {
+      const config = homepage?.gallery?.rails?.[side];
+      if (config?.enabled === false) return [side, null];
+      const width = config?.width || "narrow";
+
+      if (config?.type === "banner") {
+        return [
+          side,
+          config.image
+            ? { kind: "banner", image: config.image, alt: config.imageAlt || "", link: config.link, newTab: config.openInNewTab !== false, width }
+            : null,
+        ];
+      }
+
+      const position = config?.adPosition && isAdPosition(config.adPosition) ? config.adPosition : RAIL_POSITIONS[side];
+      try {
+        const ads = await publicApi.serveAds(position, "desktop", undefined, { revalidate: 60 });
+        const bookable = ads.filter((ad) => (ad.type === "script" ? Boolean(ad.scriptCode) : Boolean(ad.image?.url)));
+        return [side, bookable.length ? { kind: "ad", position, ads: bookable, width } : null];
+      } catch {
+        return [side, null];
+      }
+    }),
+  );
+  return Object.fromEntries(entries.filter(([, rail]) => rail)) as ResolvedRails;
+}
+
 export default async function HomePage() {
   const [feed, homepage, recent, categories] = await Promise.all([
     getHomeFeed(),
@@ -42,7 +89,12 @@ export default async function HomePage() {
     getCategories(),
   ]);
 
-  const bands = buildHomeBands(feed, homepage, recent);
+  const rails = await loadGalleryRails(homepage);
+  const featuredGrid = featuredLayout(rails);
+  const bands = buildHomeBands(feed, homepage, recent, {
+    featuredCount: featuredGrid?.count,
+    featuredColumns: featuredGrid?.columns,
+  });
   const topics = categories.filter((c) => !c.parent && c.showOnHome !== false);
   const hasStories = bands.slides.length + bands.featured.length + bands.latest.length > 0;
 
@@ -68,36 +120,12 @@ export default async function HomePage() {
       <TopicTape categories={topics} />
 
       <div className="container space-y-12 py-10 sm:space-y-14 sm:py-12">
-        <AdSlot position="home-top" />
+        {/* The strip keeps its size; each creative is fitted inside it whole, never cropped. */}
+        <AdSlot position="home-top" fixed />
 
         {!hasStories && <EmptyState title="The newsroom is warming up" message="Stories will appear here as soon as they are published." />}
 
-        {bands.featured.length > 0 && (
-          <section>
-            <SectionHeader
-              index={nextIndex()}
-              kicker="Chosen by our editors"
-              title="Featured reporting"
-              action={{ label: "See all", href: "/trending" }}
-            />
-            <div
-              className={cn(
-                "grid gap-x-6 gap-y-9",
-                bands.featured.length === 5 ? "grid-cols-2 lg:grid-cols-3" : columnsFor(bands.featured.length),
-              )}
-            >
-              {bands.featured.map((news, i) => (
-                <ArticleCard
-                  key={news._id}
-                  news={news}
-                  size={bands.featured.length === 5 && i === 0 ? "lead" : "default"}
-                  wideImage={bands.featured.length <= 2}
-                  priority={i < 2}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {bands.featured.length > 0 && <FeaturedBand stories={bands.featured} rails={rails} index={nextIndex()} />}
 
         {bands.longRead && <LongRead news={bands.longRead} />}
 
