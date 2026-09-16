@@ -7,11 +7,11 @@ export const RAIL_LIMITS: Record<RailKey, number> = {
   hero: 5,
   heroRail: 4,
   editorsPicks: 6,
-  featured: 4,
-  popular: 6,
-  latest: 2,
-  dontMiss: 2,
-  moreStories: 10,
+  featured: 6,
+  popular: 5,
+  latest: 9,
+  dontMiss: 1,
+  moreStories: 12,
 };
 
 export const MAX_SUB_TRENDING = 5;

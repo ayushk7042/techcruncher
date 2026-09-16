@@ -78,8 +78,11 @@ export function buildHomeBands(
   const featured = options.featuredColumns ? trimToRows(claimedFeatured, [options.featuredColumns]) : claimedFeatured;
   pool.release(claimedFeatured.slice(featured.length));
 
-  // Claimed right after the grid, so a rail shows a fresh story rather than one repeated below.
-  const featuredRails = options.featuredRailCount ? pool.claim(feed.editorsPick, options.featuredRailCount) : [];
+  // Claimed right after the grid, so a rail shows a fresh story rather than one
+  // repeated below. Follows curated Editors' picks when the panel sets them.
+  const featuredRails = options.featuredRailCount
+    ? pool.claim(curated(sections, "editorsPicks") ?? feed.editorsPick, options.featuredRailCount)
+    : [];
 
   const longRead = railEnabled(sections, "dontMiss")
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)

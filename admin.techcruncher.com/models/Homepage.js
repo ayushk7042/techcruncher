@@ -134,15 +134,20 @@ const railSchema = new mongoose.Schema(
 );
 
 /** How many stories each rail renders — the panel caps its picker to this. */
+/**
+ * How many stories each rail can render, so the panel's picker caps match what
+ * the homepage actually shows. A cap under the band's size made manual mode
+ * unable to fill it (latest renders nine rows, moreStories twelve tiles).
+ */
 const RAIL_LIMITS = {
   hero: 5,
   heroRail: 4,
   editorsPicks: 6,
-  featured: 4,
-  popular: 6,
-  latest: 2,
-  dontMiss: 2,
-  moreStories: 10,
+  featured: 6,
+  popular: 5,
+  latest: 9,
+  dontMiss: 1,
+  moreStories: 12,
 };
 
 const rail = () => ({ type: railSchema, default: () => ({}) });

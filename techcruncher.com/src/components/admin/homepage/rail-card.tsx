@@ -8,14 +8,18 @@ import { TextTabs } from "../controls";
 
 /** Display order and what each rail drives on the public homepage. */
 export const RAILS: { key: RailKey; label: string; drives: string }[] = [
-  { key: "hero", label: "Hero lead slides", drives: "The lead slides of the top slider." },
-  { key: "heroRail", label: "Hero remaining slides", drives: "The slides that follow the leads in the top slider." },
-  { key: "featured", label: "Featured reporting", drives: "The “Featured reporting” band." },
-  { key: "editorsPicks", label: "Editors' picks", drives: "The “Editors' picks” rail." },
-  { key: "popular", label: "Most read", drives: "The “Most read” rail." },
-  { key: "latest", label: "Latest lead", drives: "The lead stories of the latest band." },
-  { key: "dontMiss", label: "The long read", drives: "The “The long read” band." },
-  { key: "moreStories", label: "More from the newsroom", drives: "The “More from the newsroom” list." },
+  { key: "hero", label: "Top slider — lead slides", drives: "The first slides of the big slider at the top of the homepage." },
+  { key: "heroRail", label: "Top slider — following slides", drives: "The slides after the leads, listed under the slider." },
+  { key: "featured", label: "Featured reporting", drives: "The “Featured reporting” band, under the top banner ad." },
+  { key: "dontMiss", label: "The long read", drives: "The single wide “The long read” band." },
+  { key: "latest", label: "Latest reporting", drives: "The “Latest reporting” list on the left, beside Most read." },
+  { key: "popular", label: "Most read", drives: "The numbered “Most read” rail in the right sidebar." },
+  {
+    key: "editorsPicks",
+    label: "Editors' picks",
+    drives: "The “Editors' picks” rail in the sidebar, and the story shown under a Featured reporting banner.",
+  },
+  { key: "moreStories", label: "More from the newsroom", drives: "The tile grid at the foot of the homepage." },
 ];
 
 const MODE_OPTIONS = [
