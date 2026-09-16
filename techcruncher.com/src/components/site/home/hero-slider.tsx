@@ -188,9 +188,9 @@ export function HeroSlider({ slides }: { slides: CardNews[] }) {
                         live ? "bg-white/[0.07]" : "hover:bg-white/[0.04]",
                       )}
                     >
-                      <span className={cn("meta", live ? "text-accent" : "text-white/35")}>{pad2(i + 1)}</span>
+                      <span className={cn("meta", live ? "text-accent" : "text-white/55")}>{pad2(i + 1)}</span>
                       <span className="min-w-0">
-                        <span className={cn("chip block", live ? "text-white/60" : "text-white/35")}>
+                        <span className={cn("chip block", live ? "text-white/60" : "text-white/55")}>
                           {categoryOf(news)?.name || "News"}
                         </span>
                         <span className={cn("headline clamp-2 mt-1.5 block text-[13.5px]", live ? "text-white" : "text-white/60")}>

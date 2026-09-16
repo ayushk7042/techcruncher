@@ -11,7 +11,8 @@
     --line-strong: 186 186 194;
     --ink: 10 10 12;
     --ink-soft: 82 82 91;
-    --ink-mute: 128 128 138;
+    /* Same fix as dark: 128,128,138 read 3.59:1 on the canvas, under AA. */
+    --ink-mute: 106 106 116;
     --accent: 255 59 20;
     --surface: var(--paper);
     --surface-soft: var(--canvas);
@@ -26,8 +27,10 @@
     --line: 41 41 47;
     --line-strong: 66 66 75;
     --ink: 250 250 252;
-    --ink-soft: 161 161 172;
-    --ink-mute: 115 115 126;
+    /* Lifted for legibility on a near-black canvas: ink-mute was 4.25:1 (under
+       AA) on meta lines, dates and bylines; these read 9.7:1 and 6.8:1. */
+    --ink-soft: 180 180 190;
+    --ink-mute: 150 150 160;
     --accent: 255 92 54;
     --surface: var(--paper);
     --surface-soft: var(--canvas);

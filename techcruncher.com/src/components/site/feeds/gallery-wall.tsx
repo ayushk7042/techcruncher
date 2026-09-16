@@ -58,9 +58,9 @@ function PhotoViewer({
       <figure className="flex w-full max-w-5xl flex-col items-center px-8">
         <img src={url} alt={image.alt || story.title} className="max-h-[72vh] max-w-full object-contain" />
         <figcaption className="mt-5 w-full max-w-2xl text-center">
-          <p className="eyebrow text-white/45">
+          <p className="eyebrow text-white/55">
             {categoryOf(story)?.name ?? "Photography"}
-            <span className="ml-3 tabular-nums text-white/30">
+            <span className="ml-3 tabular-nums text-white/50">
               {pad2(index + 1)} / {pad2(photos.length)}
             </span>
           </p>
