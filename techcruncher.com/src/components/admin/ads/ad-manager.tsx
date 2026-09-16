@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { AD_POSITIONS, type Advertisement } from "@/types/api";
+import { AD_SLOTS, type Advertisement } from "@/types/api";
 import { adminApi } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { useAdminAuth } from "../auth-provider";
@@ -70,11 +70,11 @@ export function AdManager() {
         <div className="adm-card-head flex-wrap justify-start">
           <label className="flex items-center gap-2">
             <span className="eyebrow">Position</span>
-            <select className="adm-select w-auto font-mono text-[12px]" value={position} onChange={(e) => setPosition(e.target.value)}>
+            <select className="adm-select w-auto" value={position} onChange={(e) => setPosition(e.target.value)}>
               <option value="all">All positions</option>
-              {AD_POSITIONS.map((value) => (
-                <option key={value} value={value}>
-                  {value}
+              {AD_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
                 </option>
               ))}
             </select>

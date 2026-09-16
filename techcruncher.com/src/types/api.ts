@@ -376,6 +376,21 @@ export const AD_POSITIONS = [
 ] as const;
 
 export type AdPosition = (typeof AD_POSITIONS)[number];
+
+/**
+ * The slots the panel offers, in the order they appear down the site. Every one
+ * is rendered by the public pages; `AD_POSITIONS` stays wider so records saved
+ * on a retired slot still validate and can still be read.
+ */
+export const AD_SLOTS: { value: AdPosition; label: string }[] = [
+  { value: "home-top", label: "Home top" },
+  { value: "home-gallery-left", label: "Home gallery left" },
+  { value: "home-gallery-right", label: "Home gallery right" },
+  { value: "home-bottom", label: "Home bottom" },
+  { value: "article-sidebar-top", label: "Article sidebar top" },
+  { value: "article-sidebar-middle", label: "Article sidebar middle" },
+  { value: "article-sidebar-bottom", label: "Article sidebar bottom" },
+];
 export type Device = "desktop" | "tablet" | "mobile";
 
 export interface Advertisement {

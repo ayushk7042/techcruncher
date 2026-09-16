@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
-import { AD_POSITIONS, type AdPosition, type Advertisement, type Device, type ImageAsset } from "@/types/api";
+import { AD_SLOTS, type AdPosition, type Advertisement, type Device, type ImageAsset } from "@/types/api";
 import { adminApi, type AdPayload } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { toDateTimeInput } from "@/lib/format";
@@ -42,6 +42,14 @@ const POSITION_SIZE_HINTS: Partial<Record<AdPosition, string>> = {
     "Left column beside Featured reporting. Fills the column's width and keeps its own height, never cropped; a portrait image (about 600 × 1200 px) uses the space best. Two or more active ads rotate automatically.",
   "home-gallery-right":
     "Right column beside Featured reporting. Fills the column's width and keeps its own height, never cropped; a portrait image (about 600 × 1200 px) uses the space best. Two or more active ads rotate automatically.",
+  "home-bottom":
+    "Full-width strip at the foot of the homepage, under “More from the newsroom”. A wide banner (about 1940 × 280 px) suits it best.",
+  "article-sidebar-top":
+    "Top of the article page's right column, under the contents list. Square or 300 × 250 works best.",
+  "article-sidebar-middle":
+    "Middle of the article page's right column, between Most read and the newsletter card. Square or 300 × 250 works best.",
+  "article-sidebar-bottom":
+    "Foot of the article page's right column, after “More in this category”. Square or 300 × 250 works best.",
 };
 
 const toForm = (ad?: Advertisement): FormState => ({
@@ -128,6 +136,13 @@ export function AdFormModal({ ad, onClose }: { ad?: Advertisement; onClose: () =
     save.mutate(toPayload(form, form.position));
   }
 
+  // An ad stored on a slot the panel no longer lists keeps its own option, so
+  // opening it to change something else cannot silently move it elsewhere.
+  const slotOptions =
+    !form.position || AD_SLOTS.some((slot) => slot.value === form.position)
+      ? AD_SLOTS
+      : [...AD_SLOTS, { value: form.position, label: `${form.position} (retired slot)` }];
+
   const formId = ad ? `ad-form-${ad._id}` : "ad-form-new";
 
   return (
@@ -165,9 +180,9 @@ export function AdFormModal({ ad, onClose }: { ad?: Advertisement; onClose: () =
                 onChange={(e) => set("position", e.target.value as AdPosition)}
               >
                 <option value="">Choose a slot…</option>
-                {AD_POSITIONS.map((position) => (
-                  <option key={position} value={position}>
-                    {position}
+                {slotOptions.map((slot) => (
+                  <option key={slot.value} value={slot.value}>
+                    {slot.label}
                   </option>
                 ))}
               </select>
