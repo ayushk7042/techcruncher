@@ -23,7 +23,6 @@ const company = [
   { label: "Newsletter", href: "/newsletter" },
   { label: "Privacy policy", href: "/privacy" },
   { label: "Terms of use", href: "/terms" },
-  { label: "Sitemap", href: "/sitemap" },
 ];
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {

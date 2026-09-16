@@ -145,7 +145,7 @@ const RAIL_LIMITS = {
   editorsPicks: 6,
   featured: 6,
   popular: 5,
-  latest: 9,
+  latest: 6,
   dontMiss: 1,
   moreStories: 12,
 };

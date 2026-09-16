@@ -16,13 +16,13 @@ const trimToWholeRows = (categories: Category[]) => {
  * carries the same three things (name, count, arrow), so the rules line up
  * across all three columns however long a topic's name or description is.
  */
-export function CategoryGrid({ categories, index }: { categories: Category[]; index: number }) {
+export function CategoryGrid({ categories }: { categories: Category[] }) {
   const topics = trimToWholeRows(categories);
   if (!topics.length) return null;
 
   return (
     <section>
-      <SectionHeader index={index} kicker="The index" title="Browse by topic" action={{ label: "All topics", href: "/categories" }} />
+      <SectionHeader kicker="The index" title="Browse by topic" action={{ label: "All topics", href: "/categories" }} />
       <div className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
         {topics.map((category) => (
           <Link

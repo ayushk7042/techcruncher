@@ -55,12 +55,12 @@ export function PageHeader({ eyebrow, title, description, crumbs, children }: Pa
     <header className="border-b-2 border-ink">
       <div className="container pb-5 pt-5 sm:pb-6 sm:pt-6">
         <Breadcrumbs items={crumbs ?? [{ label: title }]} className="mb-4" />
-        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
-          <div className="min-w-0">
-            <p className="eyebrow-accent mb-2">{eyebrow}</p>
-            <h1 className="headline text-[38px] uppercase sm:text-[52px] lg:text-[60px]">{title}</h1>
-          </div>
-          {description && <p className="max-w-sm pb-1.5 text-[13.5px] leading-relaxed text-ink-soft">{description}</p>}
+        {/* The description sits under the title: pushed to the opposite edge it left a
+            wide void beside a short title like "Apps". */}
+        <div className="min-w-0">
+          <p className="eyebrow-accent mb-2">{eyebrow}</p>
+          <h1 className="headline text-[38px] uppercase sm:text-[52px] lg:text-[60px]">{title}</h1>
+          {description && <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-soft">{description}</p>}
         </div>
         {children}
       </div>
@@ -79,7 +79,7 @@ interface SectionHeaderProps {
   as?: "h2" | "h3";
 }
 
-/** Numbered home band header. */
+/** Home band header. `index` is still accepted for other pages; the homepage does not number its bands. */
 export function SectionHeader({ index, kicker, title, subtitle, action, as: Heading = "h2" }: SectionHeaderProps) {
   return (
     <div className="rule-strong mb-6 pt-2.5">

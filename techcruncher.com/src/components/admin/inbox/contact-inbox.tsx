@@ -15,6 +15,14 @@ import { CONTACTS_KEY } from "./keys";
 
 type StatusFilter = "all" | ContactMessage["status"];
 
+/**
+ * Messages stored before `status` existed carry no value at all, which counted
+ * them into none of the tabs and left the badge blank. They are new until
+ * somebody replies.
+ */
+const statusOf = (message: ContactMessage): ContactMessage["status"] =>
+  message.status ?? (message.reply?.message ? "replied" : "new");
+
 const STATUS_LABELS: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
   { label: "New", value: "new" },
@@ -32,7 +40,7 @@ export function ContactInbox() {
     () =>
       STATUS_LABELS.map((tab) => ({
         ...tab,
-        count: (data ?? []).filter((message) => tab.value === "all" || message.status === tab.value).length,
+        count: (data ?? []).filter((message) => tab.value === "all" || statusOf(message) === tab.value).length,
       })),
     [data],
   );
@@ -41,7 +49,7 @@ export function ContactInbox() {
     const term = search.trim().toLowerCase();
     return (data ?? []).filter(
       (message) =>
-        (status === "all" || message.status === status) &&
+        (status === "all" || statusOf(message) === status) &&
         (!term || [message.name, message.email, message.subject, message.message].some((field) => field?.toLowerCase().includes(term))),
     );
   }, [data, status, search]);
@@ -90,7 +98,7 @@ export function ContactInbox() {
                         )}
                       >
                         <span className="flex items-baseline justify-between gap-3">
-                          <span className={cn("truncate text-[13.5px] text-ink", message.status === "new" && "font-semibold")}>
+                          <span className={cn("truncate text-[13.5px] text-ink", statusOf(message) === "new" && "font-semibold")}>
                             {message.name}
                           </span>
                           <span className="meta shrink-0 tabular-nums">{formatDate(message.createdAt)}</span>
@@ -98,7 +106,7 @@ export function ContactInbox() {
                         <span className="mt-1 block truncate text-[13px] text-ink-soft">{message.subject || "(No subject)"}</span>
                         <span className="mt-2 flex items-center justify-between gap-3">
                           <span className="meta truncate">{message.email}</span>
-                          <StatusBadge status={message.status} />
+                          <StatusBadge status={statusOf(message)} />
                         </span>
                       </button>
                     </li>

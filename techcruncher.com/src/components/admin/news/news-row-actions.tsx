@@ -1,10 +1,8 @@
 "use client";
 
-import { CircleX, Copy, EyeOff, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
+import { Copy, EyeOff, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { useAdminAuth } from "@/components/admin/auth-provider";
-import { ConfirmDialog } from "@/components/admin/ui";
 import { adminApi } from "@/lib/api/admin";
 import type { News } from "@/types/api";
 import { IconButton, iconButtonClass } from "../controls";
@@ -13,7 +11,6 @@ import { useNewsAction } from "./use-news-action";
 export function NewsRowActions({ news }: { news: News }) {
   const { can } = useAdminAuth();
   const action = useNewsAction();
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const trashed = news.status === "trash" || Boolean(news.deletedAt);
   const published = news.status === "published";
@@ -80,32 +77,6 @@ export function NewsRowActions({ news }: { news: News }) {
             />
           )}
 
-      {can("canDelete") && (
-        <IconButton label="Delete permanently" icon={CircleX} danger disabled={busy} onClick={() => setConfirmDelete(true)} />
-      )}
-
-      <ConfirmDialog
-        open={confirmDelete}
-        title="Delete permanently?"
-        message={
-          <>
-            <strong className="text-ink">{news.title}</strong> will be removed for good. This cannot be undone.
-          </>
-        }
-        confirmLabel="Delete"
-        danger
-        busy={busy}
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={() =>
-          action.mutate(
-            async () => {
-              await adminApi.deleteNews(news._id);
-              return "Article deleted";
-            },
-            { onSettled: () => setConfirmDelete(false) },
-          )
-        }
-      />
     </div>
   );
 }

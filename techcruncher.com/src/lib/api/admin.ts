@@ -235,9 +235,8 @@ export const adminApi = {
 
   contacts: () => request<ContactMessage[]>("/contact", auth),
 
-  /** `emailed` is false when mail is not configured on the server; the reply is still saved. */
-  replyContact: (id: string, message: string) =>
-    request<ContactMessage & { emailed?: boolean }>(`/contact/reply/${id}`, { ...auth, method: "PUT", body: { message } }),
+  // Replies are sent from the editor's own mail app, so the panel no longer
+  // posts them; `PUT /contact/reply/:id` stays on the API for older clients.
 
   deleteContact: (id: string) => request<{ message: string }>(`/contact/${id}`, { ...auth, method: "DELETE" }),
 

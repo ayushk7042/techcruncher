@@ -43,6 +43,8 @@ export function buildHomeBands(
     featuredColumns?: number;
     /** One story per banner rail, to fill the column under the banner. */
     featuredRailCount?: number;
+    /** Stories already placed by hand elsewhere on the page; never repeated here. */
+    claimed?: News[];
   } = {},
 ): HomeBands {
   const sections: Sections = homepage?.sections || {};
@@ -56,6 +58,7 @@ export function buildHomeBands(
     ...feed.breaking,
   ];
   const pool = new StoryPool(everything);
+  pool.markUsed(options.claimed ?? []);
   const supply = new Set(everything.map((n) => n._id)).size;
 
   const slides = railEnabled(sections, "hero")
@@ -88,9 +91,9 @@ export function buildHomeBands(
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)
     : null;
 
-  // Nine rows, so the column runs level with the sidebar (Most read, Editors'
-  // picks, the newsletter card and the sidebar ad) instead of ending early.
-  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 9) : [];
+  // Six rows: four left the column short of the sidebar (Most read, Editors'
+  // picks and the daily brief), nine ran well past it.
+  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 6) : [];
 
   const popular = railEnabled(sections, "popular") ? (curated(sections, "popular") ?? feed.popular).slice(0, 5) : [];
 

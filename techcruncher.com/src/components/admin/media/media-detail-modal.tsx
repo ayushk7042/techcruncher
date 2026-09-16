@@ -35,7 +35,9 @@ export function MediaDetailModal({ item: initial, onClose }: { item: MediaItem; 
   const [item, setItem] = useState(initial);
   const [form, setForm] = useState<FormState>(() => toForm(initial));
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const canPublish = can("canPublish");
+  // A derived article asset has no library document, so nothing here can write to it.
+  const readOnly = Boolean(item.readOnly);
+  const canPublish = can("canPublish") && !readOnly;
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
   const refresh = () => queryClient.invalidateQueries({ queryKey: MEDIA_KEY });

@@ -19,9 +19,11 @@ export const site = {
     { label: "LinkedIn", href: "https://linkedin.com/company/techcruncher", icon: "linkedin" },
   ],
   desks: [
-    { label: "General enquiries", email: "hello@techcruncher.com", note: "Questions, feedback and corrections." },
-    { label: "Story tips", email: "tips@techcruncher.com", note: "Something we should look into? Tell us." },
-    { label: "Advertising", email: "partners@techcruncher.com", note: "Sponsorships and booked placements." },
+    {
+      label: "Email us",
+      email: "affalliances@gmail.com",
+      note: "Questions, story tips, corrections, advertising — one inbox, read by a person.",
+    },
   ],
 } as const;
 

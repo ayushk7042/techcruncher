@@ -428,6 +428,13 @@ export interface DashboardStats {
   newContacts: number;
 }
 
+/** An asset the library never recorded, derived from an article that uses it. */
+export interface MediaUsage {
+  _id: ID;
+  title: string;
+  slug: string;
+}
+
 export interface ContactMessage {
   _id: ID;
   name: string;
@@ -470,6 +477,11 @@ export interface MediaItem {
   redirectUrl?: string;
   tags?: string[];
   createdAt: string;
+  /** "article" when the file is used by a story but was never in the library. */
+  source?: "article";
+  /** Derived entries have no library document, so they cannot be edited or deleted. */
+  readOnly?: boolean;
+  usedIn?: MediaUsage;
 }
 
 export interface ImportIssue {

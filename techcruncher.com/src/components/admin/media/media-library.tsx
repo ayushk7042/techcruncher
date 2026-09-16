@@ -88,7 +88,9 @@ export function MediaLibrary() {
       return next;
     });
 
-  const allOnPageSelected = items.length > 0 && items.every((item) => selected.has(item._id));
+  // Article assets are shown for reference only: there is no library document to delete.
+  const selectable = items.filter((item) => !item.readOnly);
+  const allOnPageSelected = selectable.length > 0 && selectable.every((item) => selected.has(item._id));
 
   return (
     <>
@@ -161,7 +163,7 @@ export function MediaLibrary() {
                 onChange={() =>
                   setSelected((current) => {
                     const next = new Set(current);
-                    items.forEach((item) => (allOnPageSelected ? next.delete(item._id) : next.add(item._id)));
+                    selectable.forEach((item) => (allOnPageSelected ? next.delete(item._id) : next.add(item._id)));
                     return next;
                   })
                 }
@@ -266,16 +268,23 @@ function MediaTile({
           {formatBytes(item.bytes)}
         </span>
       </button>
-      <input
-        type="checkbox"
-        aria-label={`Select ${item.name}`}
-        checked={selected}
-        onChange={onToggle}
-        className={cn(
-          "absolute left-1.5 top-1.5 h-4 w-4 cursor-pointer accent-accent transition-opacity",
-          selected ? "opacity-100" : "opacity-0 focus:opacity-100 group-hover:opacity-100",
-        )}
-      />
+      {item.readOnly ? (
+        // Used by an article but never uploaded here: there is nothing to select or delete.
+        <span className="chip absolute left-1.5 top-1.5 bg-ink px-1.5 py-1 text-canvas" title={item.usedIn?.title}>
+          In article
+        </span>
+      ) : (
+        <input
+          type="checkbox"
+          aria-label={`Select ${item.name}`}
+          checked={selected}
+          onChange={onToggle}
+          className={cn(
+            "absolute left-1.5 top-1.5 h-4 w-4 cursor-pointer accent-accent transition-opacity",
+            selected ? "opacity-100" : "opacity-0 focus:opacity-100 group-hover:opacity-100",
+          )}
+        />
+      )}
     </li>
   );
 }

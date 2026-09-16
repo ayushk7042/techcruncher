@@ -2,6 +2,7 @@ import { AdSlot } from "@/components/site/ad-slot";
 import { ArticleListRow, ArticleRankRow, ArticleTileCard, ArticleVideoCard, ArticleWideRow } from "@/components/site/cards";
 import { Rail, SectionHeader } from "@/components/site/headers";
 import { CategoryGrid } from "@/components/site/home/category-grid";
+import { CategoryBands, resolveCategorySections } from "@/components/site/home/category-bands";
 import {
   FeaturedBand,
   featuredLayout,
@@ -92,16 +93,18 @@ export default async function HomePage() {
 
   const rails = await loadGalleryRails(homepage);
   const featuredGrid = featuredLayout(rails);
+  // Curated category sections are claimed first, so the automatic bands below
+  // never repeat a story an editor has already placed in one.
+  const categorySections = resolveCategorySections(homepage?.categorySections);
   const bands = buildHomeBands(feed, homepage, recent, {
     featuredCount: featuredGrid?.count,
     featuredColumns: featuredGrid?.columns,
     featuredRailCount: [rails.left, rails.right].filter(Boolean).length,
+    claimed: categorySections.flatMap((section) => [section.lead, ...section.rest]),
   });
   const topics = categories.filter((c) => !c.parent && c.showOnHome !== false);
   const hasStories = bands.slides.length + bands.featured.length + bands.latest.length > 0;
 
-  let band = 0;
-  const nextIndex = () => ++band;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -128,7 +131,7 @@ export default async function HomePage() {
         {!hasStories && <EmptyState title="The newsroom is warming up" message="Stories will appear here as soon as they are published." />}
 
         {bands.featured.length > 0 && (
-          <FeaturedBand stories={bands.featured} railStories={bands.featuredRails} rails={rails} index={nextIndex()} />
+          <FeaturedBand stories={bands.featured} railStories={bands.featuredRails} rails={rails} />
         )}
 
         {bands.longRead && <LongRead news={bands.longRead} />}
@@ -140,7 +143,6 @@ export default async function HomePage() {
             {bands.latest.length > 0 && (
               <section className="min-w-0 lg:col-span-8">
                 <SectionHeader
-                  index={nextIndex()}
                   kicker="As it happens"
                   title="Latest reporting"
                   action={{ label: "View all", href: "/latest" }}
@@ -176,9 +178,11 @@ export default async function HomePage() {
           </div>
         )}
 
+        <CategoryBands sections={categorySections} />
+
         {bands.videos.length > 0 && (
           <section>
-            <SectionHeader index={nextIndex()} kicker="Watch" title="On video" action={{ label: "All video", href: "/videos" }} />
+            <SectionHeader kicker="Watch" title="On video" action={{ label: "All video", href: "/videos" }} />
             <div className={cn("grid gap-x-6 gap-y-9", columnsFor(bands.videos.length))}>
               {bands.videos.map((news) => (
                 <ArticleVideoCard key={news._id} news={news} />
@@ -187,14 +191,13 @@ export default async function HomePage() {
           </section>
         )}
 
-        <CategoryGrid categories={topics.slice(0, 12)} index={nextIndex()} />
+        <CategoryGrid categories={topics.slice(0, 12)} />
 
         <NewsletterCard variant="accent" layout="row" source="home" />
 
         {bands.more.length > 0 && (
           <section>
             <SectionHeader
-              index={nextIndex()}
               kicker="Also today"
               title="More from the newsroom"
               action={{ label: "Browse the archive", href: "/latest" }}

@@ -1,4 +1,5 @@
 const Media = require("../models/Media");
+const News = require("../models/News");
 const { cloudinary, cloudinaryThumb } = require("../config/upload");
 
 /* =========================================================
@@ -105,6 +106,66 @@ exports.registerExternal = async (req, res) => {
    READ
 ========================================================= */
 
+/**
+ * Images and videos an article carries but the library never recorded —
+ * anything imported, pasted as a URL, or uploaded before the library existed.
+ * They are returned as read-only entries (`source: "article"`) so the panel can
+ * show every asset the site actually uses, not only what was uploaded here.
+ */
+const articleAssets = async () => {
+  const articles = await News.find({ deletedAt: null })
+    .select("title slug featuredImage image gallery videos publishedDate createdAt")
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .lean();
+
+  const assets = [];
+  const seen = new Set();
+
+  const push = (asset, article, kind, index = 0) => {
+    const url = (asset?.url || "").trim();
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+
+    assets.push({
+      _id: `article:${article._id}:${kind}:${index}`,
+      source: "article",
+      readOnly: true,
+      name: asset.alt || asset.caption || `${article.title} — ${kind}`,
+      originalName: article.title,
+      folder: "articles",
+      url,
+      secureUrl: url,
+      thumbnailUrl: asset.thumbnailUrl || (kind === "video" ? "" : url),
+      resourceType: kind === "video" ? "video" : "image",
+      format: asset.format || "",
+      width: asset.width,
+      height: asset.height,
+      bytes: asset.bytes,
+      alt: asset.alt || "",
+      caption: asset.caption || "",
+      credit: asset.credit || "",
+      redirectUrl: asset.redirectUrl || "",
+      usedIn: { _id: article._id, title: article.title, slug: article.slug },
+      createdAt: article.publishedDate || article.createdAt,
+    });
+  };
+
+  for (const article of articles) {
+    push(article.featuredImage, article, "featured");
+    push(article.image, article, "lead");
+    (article.gallery || []).forEach((image, i) => push(image, article, "gallery", i));
+    (article.videos || []).forEach((video, i) => {
+      if (!video?.url) return;
+      // A video's own poster is an image; the video itself files under Videos.
+      push({ ...video.thumbnail, url: video.thumbnail?.url }, article, "poster", i);
+      push({ url: video.url, alt: video.title, caption: video.caption }, article, "video", i);
+    });
+  }
+
+  return assets;
+};
+
 /** GET /api/media?page=&limit=&search=&folder=&type=&sort= */
 exports.listMedia = async (req, res) => {
   try {
@@ -116,19 +177,32 @@ exports.listMedia = async (req, res) => {
     if (folder && folder !== "all") query.folder = folder;
     if (type && type !== "all") query.resourceType = type;
 
-    if (search) {
-      const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      query.$or = [{ name: rx }, { alt: rx }, { caption: rx }, { originalName: rx }];
-    }
+    const rx = search ? new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
+    if (rx) query.$or = [{ name: rx }, { alt: rx }, { caption: rx }, { originalName: rx }];
 
-    const [items, total] = await Promise.all([
-      Media.find(query).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
-      Media.countDocuments(query),
-    ]);
+    const uploaded = await Media.find(query).sort(sort).lean();
+
+    // Article assets are merged in, minus anything already in the library.
+    const known = new Set(uploaded.map((item) => (item.url || "").trim()));
+    const derived = (await articleAssets()).filter((asset) => {
+      if (known.has(asset.url)) return false;
+      if (folder && folder !== "all" && asset.folder !== folder) return false;
+      if (type && type !== "all" && asset.resourceType !== type) return false;
+      // originalName and usedIn.title carry the article's headline, which is what
+      // an editor actually searches for when hunting a story's picture.
+      const haystack = [asset.name, asset.alt, asset.caption, asset.originalName, asset.usedIn?.title, asset.url];
+      if (rx && !haystack.some((field) => rx.test(field || ""))) return false;
+      return true;
+    });
+
+    const all = [...uploaded, ...derived].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+    );
+    const total = all.length;
 
     res.json({
       success: true,
-      data: items,
+      data: all.slice((page - 1) * limit, page * limit),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
     });
   } catch (err) {
@@ -139,14 +213,27 @@ exports.listMedia = async (req, res) => {
 /** GET /api/media/folders */
 exports.listFolders = async (req, res) => {
   try {
-    const folders = await Media.aggregate([
-      { $group: { _id: "$folder", count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+    const [folders, derived] = await Promise.all([
+      Media.aggregate([
+        { $group: { _id: "$folder", count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+      articleAssets(),
     ]);
+
+    const counts = folders.map((f) => ({ name: f._id || "uncategorized", count: f.count }));
+    // The virtual "articles" folder holds everything the library never recorded.
+    const knownUrls = new Set();
+    const articleCount = derived.filter((asset) => !knownUrls.has(asset.url)).length;
+    if (articleCount) {
+      const existing = counts.find((f) => f.name === "articles");
+      if (existing) existing.count += articleCount;
+      else counts.push({ name: "articles", count: articleCount });
+    }
 
     res.json({
       success: true,
-      data: folders.map((f) => ({ name: f._id || "uncategorized", count: f.count })),
+      data: counts,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

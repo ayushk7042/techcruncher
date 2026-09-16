@@ -119,23 +119,32 @@ export function ArticleTileCard({
 /* ArticleListRow — sidebars                                           */
 /* ------------------------------------------------------------------ */
 
-export function ArticleListRow({ news, dense = false }: { news: CardNews; dense?: boolean }) {
+export function ArticleListRow({
+  news,
+  dense = false,
+  large = false,
+}: {
+  news: CardNews;
+  dense?: boolean;
+  /** Bigger thumbnail and headline, for rows standing beside a lead card. */
+  large?: boolean;
+}) {
   const image = imageOf(news);
 
   return (
-    <article className={cn("group relative flex items-start gap-3", dense ? "py-2.5" : "py-3.5")}>
-      <div className="w-[72px] shrink-0">
+    <article className={cn("group relative flex items-start gap-3", dense ? "py-2.5" : large ? "py-4" : "py-3.5", large && "gap-4")}>
+      <div className={cn("shrink-0", large ? "w-[104px]" : "w-[72px]")}>
         <SmartImage
           src={image?.url}
           alt=""
           ratio="aspect-square"
-          width={72}
+          width={large ? 104 : 72}
           imgClassName="transition-transform duration-500 group-hover:scale-[1.04]"
         />
       </div>
       <div className="min-w-0 flex-1">
         <CategoryChip category={categoryOf(news)} linked={false} />
-        <h3 className="headline mt-1.5 text-[15px]">
+        <h3 className={cn("headline mt-1.5", large ? "text-[17px]" : "text-[15px]")}>
           <Link href={newsHref(news)} className="clamp-2 transition-colors group-hover:text-accent">
             <span className="absolute inset-0" aria-hidden="true" />
             {news.title}
@@ -153,13 +162,17 @@ export function ArticleListRow({ news, dense = false }: { news: CardNews; dense?
 
 export function ArticleRankRow({ news, rank, dense = false }: { news: CardNews; rank: number; dense?: boolean }) {
   return (
-    <article className={cn("group relative flex items-baseline gap-3.5", dense ? "py-3" : "py-3.5")}>
-      <span className="w-6 shrink-0 select-none font-mono text-[15px] font-medium leading-none tabular-nums text-accent">
+    <article className={cn("group relative flex gap-2.5", dense ? "py-3" : "py-3.5")}>
+      {/* The chip is an inline-flex box, so it has no real text baseline to align to.
+          Numeral and label instead share an equal-height row, each centred in it. */}
+      <span className="flex h-[14px] w-[22px] shrink-0 select-none items-center font-mono text-[13px] font-medium leading-none tabular-nums text-accent">
         {pad2(rank)}
       </span>
       <div className="min-w-0 flex-1">
-        <CategoryChip category={categoryOf(news)} linked={false} />
-        <h3 className="headline mt-1.5 text-[15px]">
+        <span className="flex h-[14px] items-center">
+          <CategoryChip category={categoryOf(news)} linked={false} />
+        </span>
+        <h3 className="headline mt-1 text-[15px]">
           <Link href={newsHref(news)} className="clamp-2 transition-colors group-hover:text-accent">
             <span className="absolute inset-0" aria-hidden="true" />
             {news.title}

@@ -114,7 +114,7 @@ export function ImportWizard() {
           </button>
         </Step>
 
-        <Step index={2} title="Validate a sheet">
+        <Step index={2} title="Upload sheet">
           {!canPublish && <p className="mb-3 text-[13px] text-accent">Validating and importing require publishing permission.</p>}
           <div className="flex flex-wrap items-center gap-3">
             <input
@@ -142,7 +142,7 @@ export function ImportWizard() {
               onClick={() => file && validate.mutate(file)}
             >
               {validate.isPending && <Spinner className="h-3.5 w-3.5" />}
-              Validate
+              Done
             </button>
           </div>
           {validation && (

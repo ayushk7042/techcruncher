@@ -62,7 +62,7 @@ export default async function CategoryPage({ params }: { params: Promise<Params>
   return (
     <>
       <PageHeader eyebrow="Topic" title={category.name} description={description} crumbs={[{ label: "Topics", href: "/categories" }, { label: category.name }]}>
-        <p className="eyebrow mt-8">{category.articleCount ?? initial?.pagination.total ?? 0} stories published</p>
+        <p className="eyebrow mt-5">{category.articleCount ?? initial?.pagination.total ?? 0} stories published</p>
         {children.length > 0 && (
           <Suspense>
             <FilterBar

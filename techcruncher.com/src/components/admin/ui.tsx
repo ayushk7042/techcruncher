@@ -231,12 +231,19 @@ const STATUS_TONE: Record<string, string> = {
   archived: "border-line-strong text-ink-mute",
   trash: "border-accent text-accent",
   failed: "border-accent text-accent",
+  unknown: "border-line-strong text-ink-mute",
   unsubscribed: "border-line-strong text-ink-mute",
   rolled_back: "border-line-strong text-ink-mute",
 };
 
-export function StatusBadge({ status }: { status: string }) {
-  return <span className={cn("adm-badge", STATUS_TONE[status])}>{status.replace("_", " ")}</span>;
+/**
+ * `status` is API data and can be missing on documents written before the field
+ * existed. It used to be read straight through, so one such row crashed the
+ * whole page instead of showing an unknown badge.
+ */
+export function StatusBadge({ status }: { status?: string | null }) {
+  const value = String(status ?? "unknown");
+  return <span className={cn("adm-badge", STATUS_TONE[value])}>{value.replace("_", " ")}</span>;
 }
 
 /* ------------------------------------------------------------------ */

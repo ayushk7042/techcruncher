@@ -96,10 +96,12 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link href="/admin/dashboard" aria-label={`${site.name} admin`} className="flex items-center gap-2">
-      <LogoMark className="h-5" />
-      <Wordmark size="sm" />
-      <span className="eyebrow ml-auto border border-line px-1 py-0.5">Admin</span>
+    <Link href="/admin/dashboard" aria-label={`${site.name} admin`} className="flex min-w-0 items-center gap-2.5">
+      <LogoMark className="h-6 shrink-0" />
+      <span className="flex min-w-0 flex-col">
+        <Wordmark size="sm" />
+        <span className="eyebrow mt-1">Admin panel</span>
+      </span>
     </Link>
   );
 }

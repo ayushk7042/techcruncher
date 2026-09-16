@@ -32,11 +32,36 @@ exports.createContact = async (req, res) => {
   }
 };
 
+/**
+ * Messages written by the previous panel stored the reply under `adminReply`
+ * (with a top-level `repliedAt`) and carried no `status` at all. They are
+ * mapped onto the documented shape on the way out, so every client sees one
+ * consistent message — and a missing status can no longer break a page.
+ */
+const normalizeContact = (contact) => {
+  const legacyReply = contact.adminReply;
+  const reply =
+    contact.reply?.message || legacyReply
+      ? {
+          message: contact.reply?.message || (typeof legacyReply === "string" ? legacyReply : legacyReply?.message) || "",
+          repliedAt: contact.reply?.repliedAt || contact.repliedAt || null,
+          repliedBy: contact.reply?.repliedBy || legacyReply?.repliedBy || null,
+        }
+      : undefined;
+
+  return {
+    ...contact,
+    subject: contact.subject || "",
+    reply,
+    status: contact.status || (reply?.message ? "replied" : "new"),
+  };
+};
+
 /** GET /api/contact (admin) */
 exports.getAllContacts = async (req, res) => {
   try {
     const contacts = await Contact.find().sort({ createdAt: -1 }).limit(1000).lean();
-    res.json(contacts);
+    res.json(contacts.map(normalizeContact));
   } catch (err) {
     console.error("getAllContacts error:", err);
     res.status(500).json({ message: "Could not load messages" });

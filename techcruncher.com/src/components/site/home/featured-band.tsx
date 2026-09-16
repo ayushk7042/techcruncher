@@ -110,18 +110,16 @@ export function FeaturedBand({
   stories,
   railStories = [],
   rails,
-  index,
 }: {
   stories: News[];
   /** One story per rail, filling the column under the banner. */
   railStories?: News[];
   rails: ResolvedRails;
-  index: number;
 }) {
   const layout = featuredLayout(rails);
 
   const header = (
-    <SectionHeader index={index} kicker="Chosen by our editors" title="Featured reporting" action={{ label: "See all", href: "/trending" }} />
+    <SectionHeader kicker="Chosen by our editors" title="Featured reporting" action={{ label: "See all", href: "/trending" }} />
   );
 
   if (!layout) {
