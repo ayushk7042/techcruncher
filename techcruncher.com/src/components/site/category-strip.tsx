@@ -10,7 +10,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { publicApi } from "@/lib/api/public";
 import { cn } from "@/lib/cn";
 import { formatDate, readTimeLabel } from "@/lib/format";
-import { categoryHref, excerptOf, imageOf, newsDate, newsHref, readTimeOf, toCard } from "@/lib/news";
+import { categoryHref, imageOf, newsDate, newsHref, readTimeOf, toCard } from "@/lib/news";
 
 /* ------------------------------------------------------------------ */
 /* Flyout                                                              */
@@ -91,12 +91,6 @@ function CategoryFlyout({
         )}
       </div>
 
-      {data[0] && (
-        <p className="meta clamp-1 border-t border-line px-4 py-2.5">
-          <span className="eyebrow mr-1.5 text-ink-soft">Latest</span>
-          {excerptOf(data[0], 90)}
-        </p>
-      )}
     </div>
   );
 }

@@ -69,7 +69,8 @@
 @layer components {
   /* ---- Structure ---- */
   .glass-masthead {
-    @apply border-b-2 border-ink bg-canvas/90 backdrop-blur-xl;
+    /* blur-md, not blur-xl: a wide sticky bar is re-blurred on every scroll frame. */
+    @apply border-b-2 border-ink bg-canvas/90 backdrop-blur-md;
   }
   .rule-strong {
     @apply border-t-2 border-ink;

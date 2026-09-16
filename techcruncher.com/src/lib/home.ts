@@ -85,7 +85,9 @@ export function buildHomeBands(
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)
     : null;
 
-  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 6) : [];
+  // Nine rows, so the column runs level with the sidebar (Most read, Editors'
+  // picks, the newsletter card and the sidebar ad) instead of ending early.
+  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 9) : [];
 
   const popular = railEnabled(sections, "popular") ? (curated(sections, "popular") ?? feed.popular).slice(0, 5) : [];
 

@@ -66,8 +66,11 @@ const hasCreative = (ad: Advertisement) => (ad.type === "script" ? Boolean(ad.sc
  */
 type Layout = "frame" | "natural" | "rail";
 
-/** Desktop floor for a rail, so a wide creative is not a thin strip in a tall column. */
-const RAIL_MIN_HEIGHT = "lg:min-h-[380px]";
+/**
+ * A rail fills the grid row it was placed in on desktop, so the story beneath
+ * it stays level with the cards beside it. Below desktop it keeps its own height.
+ */
+const RAIL_MIN_HEIGHT = "min-h-[250px] lg:min-h-0 lg:h-full";
 
 /**
  * Every paid slot wears the same shell — a 2px accent rule on top and a label
@@ -214,10 +217,14 @@ export function AdSlot({
   const fillClass = layout === "frame" ? "absolute inset-0 block" : cn("block w-full", layout === "rail" && "lg:h-full");
 
   return (
-    <aside className={cn("w-full", AD_SHELL, className)}>
+    <aside className={cn("w-full", AD_SHELL, rail && "flex flex-col lg:h-full", className)}>
       {label && <AdLabelBar />}
       <div
-        className={cn("relative overflow-hidden", layout === "frame" && frameRatio, layout === "rail" && RAIL_MIN_HEIGHT)}
+        className={cn(
+          "relative overflow-hidden",
+          layout === "frame" && frameRatio,
+          layout === "rail" && cn(RAIL_MIN_HEIGHT, "min-h-0 flex-1"),
+        )}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}

@@ -22,10 +22,46 @@ interface HeaderProps {
   headline: Pick<News, "title" | "slug"> | null;
 }
 
-const subscribeScroll = (listener: () => void) => {
-  window.addEventListener("scroll", listener, { passive: true });
-  return () => window.removeEventListener("scroll", listener);
+/**
+ * Scroll state for the masthead, read once per animation frame and published
+ * only when the boolean actually flips — a listener that woke React on every
+ * scroll event is what made the bar feel heavy. The two thresholds keep it
+ * from flapping when a reader hovers around the boundary.
+ */
+const scrollStore = {
+  scrolled: false,
+  frame: 0,
+  listeners: new Set<() => void>(),
+  read() {
+    scrollStore.frame = 0;
+    const next = window.scrollY > (scrollStore.scrolled ? 16 : 48);
+    if (next === scrollStore.scrolled) return;
+    scrollStore.scrolled = next;
+    scrollStore.listeners.forEach((listener) => listener());
+  },
+  onScroll() {
+    if (scrollStore.frame) return;
+    scrollStore.frame = requestAnimationFrame(scrollStore.read);
+  },
 };
+
+const subscribeScroll = (listener: () => void) => {
+  if (!scrollStore.listeners.size) {
+    scrollStore.scrolled = window.scrollY > 48;
+    window.addEventListener("scroll", scrollStore.onScroll, { passive: true });
+  }
+  scrollStore.listeners.add(listener);
+
+  return () => {
+    scrollStore.listeners.delete(listener);
+    if (scrollStore.listeners.size) return;
+    window.removeEventListener("scroll", scrollStore.onScroll);
+    if (scrollStore.frame) cancelAnimationFrame(scrollStore.frame);
+    scrollStore.frame = 0;
+  };
+};
+
+const getScrolled = () => scrollStore.scrolled;
 
 const iconButton =
   "relative flex h-8 w-8 items-center justify-center text-ink-soft transition-colors hover:bg-raise hover:text-ink";
@@ -35,7 +71,7 @@ export function Header({ categories, headline }: HeaderProps) {
   const { theme, toggle } = useTheme();
   const { items: saved } = useBookmarks();
 
-  const scrolled = useSyncExternalStore(subscribeScroll, () => window.scrollY > 32, () => false);
+  const scrolled = useSyncExternalStore(subscribeScroll, getScrolled, () => false);
   const hydrated = useHydrated();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -79,7 +115,9 @@ export function Header({ categories, headline }: HeaderProps) {
 
   return (
     <>
-      <header className="glass-masthead sticky top-0 z-50">
+      {/* Solid once scrolled: blurring a full-width sticky bar on every frame is
+          the expensive part, and it is only translucent while resting at the top. */}
+      <header className={cn("sticky top-0 z-50 border-b-2 border-ink", scrolled ? "bg-canvas" : "glass-masthead")}>
         {/* Band 1 — dateline */}
         <div
           className={cn(
