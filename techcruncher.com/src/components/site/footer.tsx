@@ -36,11 +36,18 @@ function Column({ title, children }: { title: string; children: React.ReactNode 
 }
 
 export function Footer({ categories, tags }: { categories: Category[]; tags: Tag[] }) {
-  const footerTopics = categories.filter((c) => c.showInFooter);
-  const topics = (footerTopics.length ? footerTopics : categories).slice(0, 6);
+  // Sections only: the unfiltered list also holds sub-topics, which is how
+  // "Android" and "Cross-Border Payments" ended up in this column.
+  const sections = categories.filter((category) => !category.parent);
+  const flagged = sections.filter((category) => category.showInFooter);
+  const topics = [...(flagged.length ? flagged : sections)]
+    // The six most recent; a list with no dates keeps the order the API gave.
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .slice(0, 6);
+
   const following = tags.length
     ? tags.slice(0, 10).map((t) => ({ label: t.name, href: tagHref(t) }))
-    : categories.slice(0, 10).map((c) => ({ label: c.name, href: categoryHref(c) }));
+    : sections.slice(0, 10).map((c) => ({ label: c.name, href: categoryHref(c) }));
 
   return (
     <footer className="mt-16 border-t-2 border-ink">
