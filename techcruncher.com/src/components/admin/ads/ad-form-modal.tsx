@@ -37,11 +37,11 @@ type Errors = Partial<Record<"name" | "position" | "creative" | "schedule", stri
 /** Slots whose image creatives are resized to the section on the homepage, whatever was uploaded. */
 const POSITION_SIZE_HINTS: Partial<Record<AdPosition, string>> = {
   "home-top":
-    "Full-width strip under the topics bar (970 × 140, taller on phones). The whole image is fitted inside, never cropped; about 1940 × 280 px fills it edge to edge. Two or more active ads here rotate automatically.",
+    "Full-width strip under the topics bar (970 × 170, taller on phones). The whole image is fitted inside, never cropped; about 1940 × 340 px fills it edge to edge. Two or more active ads here rotate automatically.",
   "home-gallery-left":
-    "Left column beside Featured reporting, as tall as that section on desktop. The whole image is fitted inside, never cropped; a portrait image (about 600 × 1200 px) fills it best. Two or more active ads rotate automatically.",
+    "Left column beside Featured reporting. Fills the column's width and keeps its own height, never cropped; a portrait image (about 600 × 1200 px) uses the space best. Two or more active ads rotate automatically.",
   "home-gallery-right":
-    "Right column beside Featured reporting, as tall as that section on desktop. The whole image is fitted inside, never cropped; a portrait image (about 600 × 1200 px) fills it best. Two or more active ads rotate automatically.",
+    "Right column beside Featured reporting. Fills the column's width and keeps its own height, never cropped; a portrait image (about 600 × 1200 px) uses the space best. Two or more active ads rotate automatically.",
 };
 
 const toForm = (ad?: Advertisement): FormState => ({

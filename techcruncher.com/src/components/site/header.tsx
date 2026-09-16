@@ -64,6 +64,8 @@ export function Header({ categories, headline }: HeaderProps) {
   useScrollLock(drawerOpen);
 
   const menuCategories = categories.filter((c) => c.showInMenu !== false && !c.parent);
+  // The dropdown lists sections only; sub-topics live on the /categories page.
+  const mainCategories = categories.filter((c) => !c.parent);
   const activeSlug = pathname.startsWith("/category/") ? decodeURIComponent(pathname.split("/")[2] || "") : undefined;
   // "Today" renders only on the client so server and browser never disagree on the date.
   const today = hydrated ? formatLongDate(new Date()) : "";
@@ -204,11 +206,11 @@ export function Header({ categories, headline }: HeaderProps) {
                 {browseOpen && (
                   <div className="absolute left-0 top-10 z-50 w-[min(680px,92vw)] overflow-hidden border-2 border-ink bg-paper shadow-pop">
                     <div className="flex items-baseline justify-between border-b border-line px-4 py-2.5">
-                      <span className="eyebrow text-ink">Every topic</span>
-                      <span className="meta">{categories.length} sections</span>
+                      <span className="eyebrow text-ink">Main sections</span>
+                      <span className="meta">{mainCategories.length} sections</span>
                     </div>
                     <div className="grid max-h-[60vh] grid-cols-2 overflow-y-auto sm:grid-cols-3">
-                      {categories.map((category) => {
+                      {mainCategories.map((category) => {
                         const active = category.slug === activeSlug;
                         return (
                           <Link
@@ -225,7 +227,7 @@ export function Header({ categories, headline }: HeaderProps) {
                         );
                       })}
                     </div>
-                    <Link href="/categories" className="link-muted block px-4 py-2.5 text-center">
+                    <Link href="/categories" className="link-muted block border-t border-line px-4 py-2.5 text-center">
                       Browse all topics
                     </Link>
                   </div>

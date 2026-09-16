@@ -10,6 +10,8 @@ import { hasVideo, StoryPool, trimToRows } from "./news";
 export interface HomeBands {
   slides: News[];
   featured: News[];
+  /** Stories that fill the column under a Featured reporting banner rail. */
+  featuredRails: News[];
   longRead: News | null;
   latest: News[];
   popular: News[];
@@ -39,6 +41,8 @@ export function buildHomeBands(
     featuredCount?: number;
     /** Keep Featured reporting to whole rows of this many columns. */
     featuredColumns?: number;
+    /** One story per banner rail, to fill the column under the banner. */
+    featuredRailCount?: number;
   } = {},
 ): HomeBands {
   const sections: Sections = homepage?.sections || {};
@@ -74,6 +78,9 @@ export function buildHomeBands(
   const featured = options.featuredColumns ? trimToRows(claimedFeatured, [options.featuredColumns]) : claimedFeatured;
   pool.release(claimedFeatured.slice(featured.length));
 
+  // Claimed right after the grid, so a rail shows a fresh story rather than one repeated below.
+  const featuredRails = options.featuredRailCount ? pool.claim(feed.editorsPick, options.featuredRailCount) : [];
+
   const longRead = railEnabled(sections, "dontMiss")
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)
     : null;
@@ -92,5 +99,5 @@ export function buildHomeBands(
     ? trimToRows(pool.claim(curated(sections, "moreStories") ?? feed.dontMiss, 12))
     : [];
 
-  return { slides, featured, longRead, latest, popular, editorsPicks, videos, more };
+  return { slides, featured, featuredRails, longRead, latest, popular, editorsPicks, videos, more };
 }

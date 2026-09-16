@@ -1,4 +1,4 @@
-import { AdSlot } from "@/components/site/ad-slot";
+import { AdSlot, AdLabelBar, AD_SHELL } from "@/components/site/ad-slot";
 import { ArticleCard } from "@/components/site/cards";
 import { SectionHeader } from "@/components/site/headers";
 import type { AdPosition, Advertisement, HomepageGalleryRail, News } from "@/types/api";
@@ -33,46 +33,72 @@ export function featuredLayout(rails: ResolvedRails) {
 }
 
 function RailBanner({ rail }: { rail: Extract<ResolvedRail, { kind: "banner" }> }) {
-  // Whole image always visible: fitted inside the rail, with a blurred copy filling spare room on desktop.
+  // Full column width, never cropped; spare room on desktop is filled with a blurred copy
+  // of the same image rather than left blank. self-stretch, not h-full: a percentage
+  // height on a flex child cancels the stretch and the image sticks to the top.
   const image = (
-    <>
+    <span className="relative flex w-full items-center self-stretch overflow-hidden">
       <img src={rail.image} alt="" aria-hidden="true" className="absolute inset-0 hidden h-full w-full scale-110 object-cover opacity-40 blur-2xl lg:block" />
-      <img src={rail.image} alt={rail.alt} loading="lazy" className="relative block h-auto w-full object-contain lg:h-full" />
-    </>
+      <img src={rail.image} alt={rail.alt} loading="lazy" className="relative block h-auto w-full object-contain" />
+    </span>
   );
   return (
-    <div className="relative overflow-hidden border border-line bg-raise lg:h-full lg:min-h-[360px]">
-      {rail.link ? (
-        <a
-          href={rail.link}
-          target={rail.newTab ? "_blank" : undefined}
-          rel="noopener noreferrer sponsored"
-          className="block transition-opacity hover:opacity-90 lg:absolute lg:inset-0"
-        >
-          {image}
-        </a>
-      ) : (
-        <div className="lg:absolute lg:inset-0">{image}</div>
-      )}
+    <div className={AD_SHELL}>
+      <AdLabelBar />
+      <div className="relative flex overflow-hidden lg:min-h-[380px]">
+        {rail.link ? (
+          <a
+            href={rail.link}
+            target={rail.newTab ? "_blank" : undefined}
+            rel="noopener noreferrer sponsored"
+            className="flex w-full self-stretch transition-opacity hover:opacity-90"
+          >
+            {image}
+          </a>
+        ) : (
+          image
+        )}
+      </div>
     </div>
   );
 }
 
-function Rail({ rail, className }: { rail: ResolvedRail; className: string }) {
+/**
+ * A rail is the banner plus, on desktop, one story underneath: the column is
+ * as tall as the story grid beside it, and a story fills what the banner does
+ * not use instead of leaving the space empty.
+ */
+function Rail({ rail, story, className }: { rail: ResolvedRail; story?: News; className: string }) {
   return (
     <div className={cn("min-w-0", className)}>
-      {rail.kind === "ad" ? (
-        <AdSlot position={rail.position} initialAds={rail.ads} rail className="mx-auto max-w-[360px] lg:max-w-none" />
-      ) : (
-        <div className="mx-auto max-w-[360px] lg:h-full lg:max-w-none">
-          <RailBanner rail={rail} />
-        </div>
-      )}
+      <div className="mx-auto max-w-[360px] lg:sticky lg:top-28 lg:max-w-none">
+        {rail.kind === "ad" ? <AdSlot position={rail.position} initialAds={rail.ads} rail /> : <RailBanner rail={rail} />}
+
+        {story && (
+          <div className="mt-6 hidden lg:block">
+            <p className="eyebrow rule-strong pt-2">Also worth reading</p>
+            <div className="mt-3">
+              <ArticleCard news={story} showExcerpt={false} />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-export function FeaturedBand({ stories, rails, index }: { stories: News[]; rails: ResolvedRails; index: number }) {
+export function FeaturedBand({
+  stories,
+  railStories = [],
+  rails,
+  index,
+}: {
+  stories: News[];
+  /** One story per rail, filling the column under the banner. */
+  railStories?: News[];
+  rails: ResolvedRails;
+  index: number;
+}) {
   const layout = featuredLayout(rails);
 
   const header = (
@@ -102,7 +128,7 @@ export function FeaturedBand({ stories, rails, index }: { stories: News[]; rails
     <section>
       {header}
       <div className="grid grid-cols-1 gap-x-6 gap-y-9 lg:grid-cols-12">
-        {rails.left && <Rail rail={rails.left} className={cn("order-2 lg:order-none", layout.railSpan)} />}
+        {rails.left && <Rail rail={rails.left} story={railStories[0]} className={cn("order-2 lg:order-none", layout.railSpan)} />}
         <div className={cn("order-1 min-w-0 lg:order-none", layout.mainSpan)}>
           <div className={cn("grid gap-x-6 gap-y-9", layout.grid)}>
             {stories.map((news, i) => (
@@ -110,7 +136,13 @@ export function FeaturedBand({ stories, rails, index }: { stories: News[]; rails
             ))}
           </div>
         </div>
-        {rails.right && <Rail rail={rails.right} className={cn("order-3 lg:order-none", layout.railSpan)} />}
+        {rails.right && (
+          <Rail
+            rail={rails.right}
+            story={railStories[rails.left ? 1 : 0]}
+            className={cn("order-3 lg:order-none", layout.railSpan)}
+          />
+        )}
       </div>
     </section>
   );

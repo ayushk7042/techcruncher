@@ -35,7 +35,8 @@ async function loadHomepage(): Promise<Homepage | null> {
 async function loadRecentWithMedia(): Promise<News[]> {
   try {
     // The home feed omits video fields, so the video band reads the list endpoint.
-    return (await publicApi.listNews({ sort: "latest", limit: 40 }, { revalidate: 120 })).data;
+    // Same window as the page itself, so a new article never waits on this list alone.
+    return (await publicApi.listNews({ sort: "latest", limit: 40 }, { revalidate: 60 })).data;
   } catch {
     return [];
   }
@@ -94,6 +95,7 @@ export default async function HomePage() {
   const bands = buildHomeBands(feed, homepage, recent, {
     featuredCount: featuredGrid?.count,
     featuredColumns: featuredGrid?.columns,
+    featuredRailCount: [rails.left, rails.right].filter(Boolean).length,
   });
   const topics = categories.filter((c) => !c.parent && c.showOnHome !== false);
   const hasStories = bands.slides.length + bands.featured.length + bands.latest.length > 0;
@@ -125,7 +127,9 @@ export default async function HomePage() {
 
         {!hasStories && <EmptyState title="The newsroom is warming up" message="Stories will appear here as soon as they are published." />}
 
-        {bands.featured.length > 0 && <FeaturedBand stories={bands.featured} rails={rails} index={nextIndex()} />}
+        {bands.featured.length > 0 && (
+          <FeaturedBand stories={bands.featured} railStories={bands.featuredRails} rails={rails} index={nextIndex()} />
+        )}
 
         {bands.longRead && <LongRead news={bands.longRead} />}
 

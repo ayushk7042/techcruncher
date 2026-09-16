@@ -21,7 +21,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Footer categories={categories} tags={tags} />
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden">
         <div className="pointer-events-auto">
-          <AdSlot position="mobile-sticky-bottom" ratio="aspect-[320/50]" label={false} className="container border-t border-line bg-canvas/95 py-2 backdrop-blur" />
+          {/* The slot brings its own accent rule and border, so the bar only supplies width and blur. */}
+          <AdSlot position="mobile-sticky-bottom" ratio="aspect-[320/50]" label={false} className="mx-4 my-2 w-auto backdrop-blur" />
         </div>
       </div>
     </div>

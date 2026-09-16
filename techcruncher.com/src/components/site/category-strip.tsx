@@ -10,7 +10,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { publicApi } from "@/lib/api/public";
 import { cn } from "@/lib/cn";
 import { formatDate, readTimeLabel } from "@/lib/format";
-import { categoryHref, excerptOf, imageOf, newsDate, newsHref, readTimeOf, stripHtml, toCard } from "@/lib/news";
+import { categoryHref, excerptOf, imageOf, newsDate, newsHref, readTimeOf, toCard } from "@/lib/news";
 
 /* ------------------------------------------------------------------ */
 /* Flyout                                                              */
@@ -48,10 +48,8 @@ function CategoryFlyout({
       className="fixed z-[60] hidden overflow-hidden border border-line bg-paper shadow-pop lg:block"
     >
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
-        <div className="min-w-0">
-          <p className="headline text-[17px]">{category.name}</p>
-          <p className="meta clamp-1 mt-0.5">{stripHtml(category.description) || `Latest ${category.name} coverage`}</p>
-        </div>
+        {/* Name only — the description made this header noisy. */}
+        <p className="headline min-w-0 text-[17px]">{category.name}</p>
         <Link
           href={categoryHref(category)}
           className="inline-flex shrink-0 items-center gap-1.5 text-[12px] font-semibold text-ink-soft hover:text-accent"

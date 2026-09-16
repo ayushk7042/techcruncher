@@ -10,7 +10,8 @@ import { cn } from "@/lib/cn";
 import { imageUrl } from "@/lib/image";
 
 const DEFAULT_RATIOS: Partial<Record<AdPosition, string>> = {
-  "home-top": "aspect-[970/250] sm:aspect-[970/140]",
+  // A little taller than a bare leaderboard, so a fitted creative comes out wider.
+  "home-top": "aspect-[970/260] sm:aspect-[970/170]",
   "home-mid": "aspect-[1200/200]",
   "article-inline": "aspect-[970/180]",
   sidebar: "aspect-[300/250]",
@@ -57,11 +58,31 @@ const hasCreative = (ad: Advertisement) => (ad.type === "script" ? Boolean(ad.sc
  * How a slot is sized:
  *   "frame"   — the slot keeps a fixed shape (ratio); creatives are fitted inside it.
  *   "natural" — the slot takes the creative's own height.
- *   "rail"    — fills the parent's height on desktop, natural below it.
- * In every mode the whole image stays visible (object-contain); spare room
- * around it shows a soft blurred copy instead of an empty box.
+ *   "rail"    — a column beside a story grid: the creative runs the column's
+ *               full width at a comfortable minimum height, and grows past it
+ *               for a taller creative. Sticky while the row scrolls.
+ * The whole image always stays visible; spare room around it shows a soft
+ * blurred copy of the same image instead of an empty box.
  */
 type Layout = "frame" | "natural" | "rail";
+
+/** Desktop floor for a rail, so a wide creative is not a thin strip in a tall column. */
+const RAIL_MIN_HEIGHT = "lg:min-h-[380px]";
+
+/**
+ * Every paid slot wears the same shell — a 2px accent rule on top and a label
+ * bar — so a reader can tell an ad from editorial at a glance, wherever it sits.
+ */
+export const AD_SHELL = "border border-line border-t-2 border-t-accent bg-raise";
+
+export function AdLabelBar({ note }: { note?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
+      <span className="eyebrow-accent">Advertisement</span>
+      {note ? <span className="eyebrow">{note}</span> : <span className="chip-live">Ad</span>}
+    </div>
+  );
+}
 
 function ImageCreative({ ad, layout }: { ad: Advertisement; layout: Layout }) {
   const src = imageUrl(ad.image?.url, 1320);
@@ -79,26 +100,20 @@ function ImageCreative({ ad, layout }: { ad: Advertisement; layout: Layout }) {
     );
   }
 
-  const fitted = layout === "rail" ? "lg:absolute lg:inset-0" : "absolute inset-0";
+  const rail = layout === "rail";
   return (
-    <div className={cn("relative h-full w-full overflow-hidden", fitted)}>
+    <div className={cn("overflow-hidden", rail ? "relative flex h-full w-full items-center" : "absolute inset-0 h-full w-full")}>
       <img
         src={src}
         alt=""
         aria-hidden="true"
-        className={cn(
-          "absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl",
-          layout === "rail" && "hidden lg:block",
-        )}
+        className={cn("absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl", rail && "hidden lg:block")}
       />
       <img
         src={src}
         alt={alt}
         loading="lazy"
-        className={cn(
-          "relative block object-contain",
-          layout === "rail" ? "h-auto w-full lg:h-full" : "h-full w-full",
-        )}
+        className={cn("relative block object-contain", rail ? "h-auto w-full" : "h-full w-full")}
       />
     </div>
   );
@@ -180,14 +195,9 @@ export function AdSlot({
     }
     if (AD_PLACEHOLDER) {
       return (
-        <div
-          className={cn(
-            "eyebrow flex items-center justify-center border border-dashed border-line-strong bg-raise",
-            rail ? "min-h-[250px] lg:h-full" : frameRatio,
-            className,
-          )}
-        >
-          Ad zone / {position}
+        <div className={cn(AD_SHELL, className)}>
+          <AdLabelBar note="Unsold" />
+          <div className={cn("eyebrow flex items-center justify-center", rail ? "min-h-[250px]" : frameRatio)}>Ad zone / {position}</div>
         </div>
       );
     }
@@ -198,27 +208,16 @@ export function AdSlot({
 
   // Slides share one cell: a fixed frame pins them to its box; otherwise the
   // tallest creative sets the height so rotating never makes the page jump.
-  const stackClass = {
-    frame: "absolute inset-0",
-    natural: "grid",
-    rail: "grid lg:absolute lg:inset-0 lg:block",
-  }[layout];
-  const slideClass = {
-    frame: "absolute inset-0 flex items-center justify-center",
-    natural: "flex items-center justify-center [grid-area:1/1]",
-    rail: "[grid-area:1/1] lg:absolute lg:inset-0",
-  }[layout];
-  const fillClass = layout === "natural" ? "block w-full" : layout === "rail" ? "block lg:absolute lg:inset-0" : "absolute inset-0 block";
+  const stackClass = layout === "frame" ? "absolute inset-0" : cn("grid", layout === "rail" && RAIL_MIN_HEIGHT);
+  const slideClass =
+    layout === "frame" ? "absolute inset-0 flex items-center justify-center" : "flex items-center justify-center [grid-area:1/1]";
+  const fillClass = layout === "frame" ? "absolute inset-0 block" : cn("block w-full", layout === "rail" && "lg:h-full");
 
   return (
-    <aside className={cn("w-full", rail && "flex flex-col lg:h-full", className)}>
-      {label && <p className="eyebrow mb-2 text-center">Advertisement</p>}
+    <aside className={cn("w-full", AD_SHELL, className)}>
+      {label && <AdLabelBar />}
       <div
-        className={cn(
-          "relative overflow-hidden border border-line bg-raise",
-          layout === "frame" && frameRatio,
-          layout === "rail" && "lg:min-h-[360px] lg:flex-1",
-        )}
+        className={cn("relative overflow-hidden", layout === "frame" && frameRatio, layout === "rail" && RAIL_MIN_HEIGHT)}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}

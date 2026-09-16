@@ -44,7 +44,11 @@ export function ImportWizard() {
 
   const validate = useMutation({
     mutationFn: (sheet: File) => adminApi.validateImport(sheet),
-    onSuccess: ({ data }) => setValidation(data),
+    onSuccess: ({ data }) => {
+      setValidation(data);
+      // Said out loud, because the report that follows looks like a finished import.
+      toast.success("Sheet checked — nothing imported yet. Run step 3 to import.");
+    },
     onError: (error) => toast.error(errorMessage(error, "Validation failed")),
   });
 
@@ -149,7 +153,7 @@ export function ImportWizard() {
         </Step>
 
         {validation && file && (
-          <Step index={3} title="Run the import">
+          <Step index={3} title="Run the import — nothing is saved until you do">
             {run ? (
               <div className="space-y-5">
                 {run.result ? <JobReport job={run.result} /> : <ImportProgress batchId={run.batchId} />}

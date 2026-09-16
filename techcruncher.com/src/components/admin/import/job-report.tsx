@@ -35,6 +35,8 @@ export function IssuesTable({ issues }: { issues: ImportIssue[] }) {
 }
 
 export function JobReport({ job }: { job: ImportJob }) {
+  const written = (job.createdCount ?? 0) + (job.updatedCount ?? 0);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
@@ -43,6 +45,13 @@ export function JobReport({ job }: { job: ImportJob }) {
         <StatTile label="Skipped" value={job.skippedCount ?? 0} />
         <StatTile label="Errors" value={job.errorCount ?? 0} highlight={Boolean(job.errorCount)} />
       </div>
+
+      {written > 0 && (
+        <p className="text-[13px] text-ink-soft">
+          Published rows appear on the site within about a minute. Rows imported as draft or scheduled stay hidden until they
+          are published.
+        </p>
+      )}
       {job.issues?.length ? <IssuesTable issues={job.issues} /> : <p className="meta">No issues reported.</p>}
     </div>
   );

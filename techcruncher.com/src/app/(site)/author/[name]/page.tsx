@@ -24,7 +24,7 @@ export default async function AuthorPage({ params }: { params: Promise<Params> }
 
   let initial: Paginated<News> | undefined;
   try {
-    initial = await publicApi.listNews({ ...filter, limit: 16, sort: "latest" }, { revalidate: 120 });
+    initial = await publicApi.listNews({ ...filter, limit: 16, sort: "latest" }, { revalidate: 60 });
   } catch {
     initial = undefined;
   }

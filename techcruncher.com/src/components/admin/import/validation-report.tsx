@@ -11,8 +11,21 @@ export function ValidationReport({ result }: { result: ValidationResult }) {
   const errorRows = result.errorRows ?? result.skippedCount ?? 0;
   const preview = result.preview ?? [];
 
+  const willWrite = (result.willCreate ?? 0) + (result.willUpdate ?? 0);
+
   return (
     <div className="space-y-6">
+      {/* This screen reads like a finished import otherwise — every row is badged "create". */}
+      <div role="note" className="flex gap-3 border-2 border-accent px-4 py-3 text-[13px]">
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+        <p className="text-ink">
+          <span className="font-semibold">Preview only — nothing has been imported yet.</span>{" "}
+          {willWrite > 0
+            ? `Run step 3 below to write ${willWrite} row${willWrite === 1 ? "" : "s"} to the site.`
+            : "Nothing in this sheet would be written."}
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-5">
         <StatTile label="Rows" value={result.totalRows} />
         <StatTile label="Valid" value={result.validRows ?? 0} />
