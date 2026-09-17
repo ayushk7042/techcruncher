@@ -103,8 +103,11 @@ export function buildHomeBands(
 
   const videos = pool.claim(recentWithMedia.filter(hasVideo), 4, false);
 
+  // Whole rows of four, matching the grid the band renders. The recent list is
+  // appended so the band still fills its rows once the curated category bands
+  // above have claimed their stories.
   const more = railEnabled(sections, "moreStories")
-    ? trimToRows(pool.claim(curated(sections, "moreStories") ?? feed.dontMiss, 12))
+    ? trimToRows(pool.claim([...(curated(sections, "moreStories") ?? feed.dontMiss), ...recentWithMedia], 12), [4])
     : [];
 
   return { slides, featured, featuredRails, longRead, latest, popular, editorsPicks, videos, more };

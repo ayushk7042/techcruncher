@@ -36,8 +36,10 @@ async function loadHomepage(): Promise<Homepage | null> {
 async function loadRecentWithMedia(): Promise<News[]> {
   try {
     // The home feed omits video fields, so the video band reads the list endpoint.
-    // Same window as the page itself, so a new article never waits on this list alone.
-    return (await publicApi.listNews({ sort: "latest", limit: 40 }, { revalidate: 60, tags: ["news"] })).data;
+    // Same window as the page itself, so a new article never waits on this list
+    // alone. Sixty, not forty: the curated bands claim a large share of the
+    // catalogue, and the closing band still has to fill whole rows from what is left.
+    return (await publicApi.listNews({ sort: "latest", limit: 60 }, { revalidate: 60, tags: ["news"] })).data;
   } catch {
     return [];
   }
@@ -202,7 +204,8 @@ export default async function HomePage() {
               title="More from the newsroom"
               action={{ label: "Browse the archive", href: "/latest" }}
             />
-            <div className={cn("grid gap-x-6 gap-y-9", columnsFor(bands.more.length, true))}>
+            {/* Four across on desktop: six made each tile too narrow to read. */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
               {bands.more.map((news) => (
                 <ArticleTileCard key={news._id} news={news} compact />
               ))}
