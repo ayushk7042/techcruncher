@@ -91,9 +91,9 @@ export function buildHomeBands(
     ? (pool.claim(curated(sections, "dontMiss") ?? feed.dontMiss, 1)[0] ?? null)
     : null;
 
-  // Six rows: four left the column short of the sidebar (Most read, Editors'
-  // picks and the daily brief), nine ran well past it.
-  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 6) : [];
+  // Seven rows, so the column finishes level with the sidebar beside it
+  // (Most read, Editors' picks and the daily brief).
+  const latest = railEnabled(sections, "latest") ? pool.claim(curated(sections, "latest") ?? feed.latest, 7) : [];
 
   const popular = railEnabled(sections, "popular") ? (curated(sections, "popular") ?? feed.popular).slice(0, 5) : [];
 

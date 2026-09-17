@@ -14,7 +14,8 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { Spinner, StatusBadge } from "../ui";
 import { IconButton } from "../controls";
 
-const RESULT_LIMIT = 8;
+/** One page of results; "Load more" walks the rest of the catalogue. */
+const PAGE_SIZE = 25;
 
 interface NewsPickerProps {
   label: string;
@@ -40,21 +41,30 @@ export function NewsPicker({ label, hint, value, onChange, max, category, disabl
   const full = value.length >= max;
   const searchable = !disabled && (single || !full);
   const selectedIds = new Set(value.map((news) => news._id));
-  // Over-fetch by the selection size so excluding picked stories still fills the list.
-  const fetchLimit = RESULT_LIMIT + value.length;
+  // How many pages of the catalogue are on screen; reset whenever the query changes.
+  const [pages, setPages] = useState(1);
+  const [lastQuery, setLastQuery] = useState(`${term}|${category ?? ""}`);
+  const queryKey = `${term}|${category ?? ""}`;
+  if (queryKey !== lastQuery) {
+    setLastQuery(queryKey);
+    setPages(1);
+  }
 
   const results = useQuery({
-    queryKey: ["admin", "news", "picker", term, category ?? "", fetchLimit],
+    queryKey: ["admin", "news", "picker", term, category ?? "", pages],
     queryFn: ({ signal }) =>
       adminApi.listNews(
-        { search: term || undefined, category: category || undefined, status: "published", limit: fetchLimit, sort: "latest" },
+        { search: term || undefined, category: category || undefined, status: "published", limit: PAGE_SIZE * pages, sort: "latest" },
         signal,
       ),
     enabled: open && searchable,
     staleTime: 30_000,
   });
 
-  const options = (results.data?.data || []).filter((news) => !selectedIds.has(news._id)).slice(0, RESULT_LIMIT);
+  const total = results.data?.pagination.total ?? 0;
+  const loaded = results.data?.data.length ?? 0;
+  const options = (results.data?.data || []).filter((news) => !selectedIds.has(news._id));
+  const hasMore = loaded < total;
 
   function pick(news: News) {
     const next = single ? [news] : [...value, news];
@@ -161,7 +171,8 @@ export function NewsPicker({ label, hint, value, onChange, max, category, disabl
               ) : options.length === 0 ? (
                 <p className="meta px-3 py-3">No published articles match.</p>
               ) : (
-                options.map((news) => (
+                <>
+                  {options.map((news) => (
                   <button
                     key={news._id}
                     type="button"
@@ -180,7 +191,27 @@ export function NewsPicker({ label, hint, value, onChange, max, category, disabl
                       </span>
                     </span>
                   </button>
-                ))
+                  ))}
+
+                  <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2">
+                    <span className="meta tabular-nums">
+                      {loaded} of {total} article{total === 1 ? "" : "s"}
+                    </span>
+                    {hasMore && (
+                      <button
+                        type="button"
+                        className="adm-btn adm-btn-sm"
+                        // Keep focus in the input so the list does not close before the click lands.
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => setPages((current) => current + 1)}
+                        disabled={results.isFetching}
+                      >
+                        {results.isFetching && <Spinner className="h-3 w-3" />}
+                        Load more
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}

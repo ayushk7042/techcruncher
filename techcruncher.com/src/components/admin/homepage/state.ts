@@ -6,10 +6,10 @@ import { RAIL_KEYS, type Homepage, type HomepageGallery, type ID, type News, typ
 export const RAIL_LIMITS: Record<RailKey, number> = {
   hero: 5,
   heroRail: 4,
-  editorsPicks: 6,
+  editorsPicks: 4,
   featured: 6,
   popular: 5,
-  latest: 6,
+  latest: 7,
   dontMiss: 1,
   moreStories: 12,
 };
