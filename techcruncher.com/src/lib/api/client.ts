@@ -29,6 +29,8 @@ export interface RequestOptions {
   /** Next.js data-cache controls for server-side fetches. */
   revalidate?: number | false;
   cache?: RequestCache;
+  /** Cache tags, so a save in the panel can purge exactly these fetches. */
+  tags?: string[];
 }
 
 export function readToken(): string | null {
@@ -57,7 +59,7 @@ export function buildUrl(path: string, query?: Record<string, QueryValue>): stri
  * `{ success: false, message }`) into ApiError.
  */
 export async function requestRaw(path: string, options: RequestOptions = {}): Promise<Response> {
-  const { method = "GET", query, body, form, auth, signal, revalidate, cache } = options;
+  const { method = "GET", query, body, form, auth, signal, revalidate, cache, tags } = options;
 
   const headers: Record<string, string> = { Accept: "application/json" };
   if (!form && body !== undefined) headers["Content-Type"] = "application/json";
@@ -67,15 +69,19 @@ export async function requestRaw(path: string, options: RequestOptions = {}): Pr
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const init: RequestInit & { next?: { revalidate?: number | false } } = {
+  const init: RequestInit & { next?: { revalidate?: number | false; tags?: string[] } } = {
     method,
     headers,
     signal,
     body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
   };
 
+  // Tags ride alongside the window: the window is the safety net, a tag purge
+  // is what makes a save in the panel show up at once.
   if (cache) init.cache = cache;
-  else if (revalidate !== undefined) init.next = { revalidate };
+  else if (revalidate !== undefined || tags?.length) {
+    init.next = { ...(revalidate !== undefined ? { revalidate } : {}), ...(tags?.length ? { tags } : {}) };
+  }
 
   let response: Response;
   try {

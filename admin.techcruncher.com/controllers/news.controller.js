@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const News = require("../models/News");
 const Category = require("../models/Category");
 const { buildNewsPayload, refreshTagCounts, resolveTags } = require("../services/newsPayload.service");
+const { revalidateSite, articlePaths } = require("../services/revalidate.service");
 const { queueNewsletter } = require("../services/newsletterNotify.service");
 const { uniqueSlug, makeSlug } = require("../utils/newsHelpers");
 const { escapeRegex } = require("../utils/escapeHtml");
@@ -445,6 +446,7 @@ exports.createNews = async (req, res) => {
 
     if (patch.tags?.length) refreshTagCounts(patch.tags).catch(() => {});
     if (news.status === "published") queueNewsletter(news._id);
+    revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(news) });
 
     res.status(201).json(warnings.length ? { ...news.toObject(), warnings } : news);
   } catch (err) {
@@ -532,6 +534,9 @@ const applyUpdate = async (query, body, res) => {
   Object.assign(existing, patch);
   await existing.save();
 
+  // The edited story, the homepage that lists it and the latest feed.
+  revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(existing) });
+
   const touched = [...new Set([...previousTags, ...(existing.tags || []).map(String)])];
   if (touched.length) refreshTagCounts(touched).catch(() => {});
   if (previousStatus !== "published" && existing.status === "published") queueNewsletter(existing._id);
@@ -571,6 +576,7 @@ exports.changeStatus = async (req, res) => {
 
     if (existing.tags?.length) refreshTagCounts(existing.tags).catch(() => {});
     if (existing.status !== "published" && status === "published") queueNewsletter(news._id);
+    revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(news) });
 
     res.json({ success: true, data: news });
   } catch (err) {
@@ -593,6 +599,7 @@ exports.restoreNews = async (req, res) => {
 
     if (news.tags?.length) refreshTagCounts(news.tags).catch(() => {});
     if (before?.status !== "published" && status === "published") queueNewsletter(news._id);
+    revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(news) });
 
     res.json({ success: true, data: news });
   } catch (err) {
@@ -652,6 +659,7 @@ exports.deleteNews = async (req, res) => {
 
     const news = await News.findByIdAndDelete(req.params.id);
     if (news?.tags?.length) refreshTagCounts(news.tags).catch(() => {});
+    revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(news) });
 
     res.json({ message: "News deleted" });
   } catch (err) {
@@ -668,6 +676,7 @@ exports.trashNews = async (req, res) => {
     if (!news) return res.status(404).json({ success: false, message: "Not found" });
 
     if (news.tags?.length) refreshTagCounts(news.tags).catch(() => {});
+    revalidateSite({ tags: ["homepage", "news"], paths: articlePaths(news) });
     res.json({ success: true, message: "Moved to trash" });
   } catch (err) {
     serverError(res, err, "trashNews");

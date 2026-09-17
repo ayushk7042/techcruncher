@@ -17,7 +17,7 @@ import { request, type RequestOptions } from "./client";
  * from the browser; server callers pass `revalidate` / `cache`.
  */
 
-type Cache = Pick<RequestOptions, "revalidate" | "cache" | "signal">;
+type Cache = Pick<RequestOptions, "revalidate" | "cache" | "signal" | "tags">;
 
 const listQuery = (params: NewsListParams) => ({
   ...params,

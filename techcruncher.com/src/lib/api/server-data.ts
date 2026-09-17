@@ -19,15 +19,15 @@ async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
 }
 
 export const getCategories = cache(() =>
-  safe<Category[]>(publicApi.categories({ withCounts: true }, { revalidate: 300 }), []),
+  safe<Category[]>(publicApi.categories({ withCounts: true }, { revalidate: 300, tags: ["categories"] }), []),
 );
 
 export const getCategoriesWithCovers = cache(() =>
-  safe<Category[]>(publicApi.categories({ withCounts: true, withCover: true }, { revalidate: 300 }), []),
+  safe<Category[]>(publicApi.categories({ withCounts: true, withCover: true }, { revalidate: 300, tags: ["categories"] }), []),
 );
 
 export const getTags = cache(() =>
-  safe<Tag[]>(publicApi.tags({ limit: 12, sort: "popular" }, { revalidate: 600 }).then((r) => r.data), []),
+  safe<Tag[]>(publicApi.tags({ limit: 12, sort: "popular" }, { revalidate: 600, tags: ["tags"] }).then((r) => r.data), []),
 );
 
 const EMPTY_FEED: HomeFeed = {
@@ -41,7 +41,9 @@ const EMPTY_FEED: HomeFeed = {
   dontMiss: [],
 };
 
-export const getHomeFeed = cache(() => safe<HomeFeed>(publicApi.homeFeed({ revalidate: 60 }), EMPTY_FEED));
+export const getHomeFeed = cache(() =>
+  safe<HomeFeed>(publicApi.homeFeed({ revalidate: 60, tags: ["homepage", "news"] }), EMPTY_FEED),
+);
 
 /** The single most urgent headline for the masthead dateline. */
 export const getTopHeadline = cache(async (): Promise<Pick<News, "title" | "slug"> | null> => {
@@ -51,7 +53,7 @@ export const getTopHeadline = cache(async (): Promise<Pick<News, "title" | "slug
 });
 
 export const getPopular = cache(() =>
-  safe(publicApi.listNews({ sort: "popular", limit: 5 }, { revalidate: 300 }).then((r) => r.data), [] as News[]),
+  safe(publicApi.listNews({ sort: "popular", limit: 5 }, { revalidate: 300, tags: ["news"] }).then((r) => r.data), [] as News[]),
 );
 
 /** Topics ordered by how much they publish, for filter bars and indexes. */

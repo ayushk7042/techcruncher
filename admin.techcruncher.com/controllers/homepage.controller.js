@@ -1,4 +1,5 @@
 const Homepage = require("../models/Homepage");
+const { revalidateSite } = require("../services/revalidate.service");
 
 const { RAIL_LIMITS } = Homepage;
 const RAIL_KEYS = Object.keys(RAIL_LIMITS);
@@ -304,6 +305,9 @@ exports.updateHomepage = async (req, res) => {
 
     await homepage.populate(REF_POPULATE);
     await homepage.populate(GALLERY_POPULATE);
+
+    // The curated bands are the homepage itself, so rebuild it straight away.
+    revalidateSite({ tags: ["homepage", "news"], paths: ["/"] });
 
     res.json(homepage);
   } catch (err) {

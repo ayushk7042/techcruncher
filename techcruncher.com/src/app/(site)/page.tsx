@@ -27,7 +27,7 @@ export const revalidate = 60;
 
 async function loadHomepage(): Promise<Homepage | null> {
   try {
-    return await publicApi.homepage({ revalidate: 60 });
+    return await publicApi.homepage({ revalidate: 60, tags: ["homepage"] });
   } catch {
     return null;
   }
@@ -37,7 +37,7 @@ async function loadRecentWithMedia(): Promise<News[]> {
   try {
     // The home feed omits video fields, so the video band reads the list endpoint.
     // Same window as the page itself, so a new article never waits on this list alone.
-    return (await publicApi.listNews({ sort: "latest", limit: 40 }, { revalidate: 60 })).data;
+    return (await publicApi.listNews({ sort: "latest", limit: 40 }, { revalidate: 60, tags: ["news"] })).data;
   } catch {
     return [];
   }
@@ -72,7 +72,7 @@ async function loadGalleryRails(homepage: Homepage | null): Promise<ResolvedRail
 
       const position = config?.adPosition && isAdPosition(config.adPosition) ? config.adPosition : RAIL_POSITIONS[side];
       try {
-        const ads = await publicApi.serveAds(position, "desktop", undefined, { revalidate: 60 });
+        const ads = await publicApi.serveAds(position, "desktop", undefined, { revalidate: 60, tags: ["ads"] });
         const bookable = ads.filter((ad) => (ad.type === "script" ? Boolean(ad.scriptCode) : Boolean(ad.image?.url)));
         return [side, bookable.length ? { kind: "ad", position, ads: bookable, width } : null];
       } catch {
