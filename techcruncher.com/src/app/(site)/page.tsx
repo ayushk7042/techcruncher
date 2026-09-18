@@ -144,7 +144,8 @@ export default async function HomePage() {
 
       <div className="container space-y-12 py-10 sm:space-y-14 sm:py-12">
         {/* The strip keeps its size; each creative is fitted inside it whole, never cropped. */}
-        <AdSlot position="home-top" fixed />
+        {/* Reaches a little past the text column, so the creative sits wider than the copy. */}
+        <AdSlot position="home-top" fixed className="-mx-2 w-auto sm:-mx-4 lg:-mx-8" />
 
         {!hasStories && <EmptyState title="The newsroom is warming up" message="Stories will appear here as soon as they are published." />}
 

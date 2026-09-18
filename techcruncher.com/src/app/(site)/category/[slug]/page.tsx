@@ -76,7 +76,8 @@ export default async function CategoryPage({ params }: { params: Promise<Params>
       </PageHeader>
 
       <div className="container py-9">
-        <AdSlot position="category-top" className="mb-12" category={category._id} />
+        {/* Same treatment as the homepage strip: a little wider than the copy beneath it. */}
+        <AdSlot position="category-top" fixed className="-mx-2 mb-12 w-auto sm:-mx-4 lg:-mx-8" category={category._id} />
         <Suspense fallback={<ListSkeleton count={8} />}>
           <ArticleFeed
             params={{ category: category.slug }}

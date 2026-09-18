@@ -61,8 +61,8 @@ const hasCreative = (ad: Advertisement) => (ad.type === "script" ? Boolean(ad.sc
  *   "rail"    — a column beside a story grid: the creative runs the column's
  *               full width at a comfortable minimum height, and grows past it
  *               for a taller creative. Sticky while the row scrolls.
- * The whole image always stays visible; spare room around it shows a soft
- * blurred copy of the same image instead of an empty box.
+ * The whole image always stays visible, never cropped; any spare room beside it
+ * is the page's own light background rather than a blurred copy of the artwork.
  */
 type Layout = "frame" | "natural" | "rail";
 
@@ -76,7 +76,7 @@ const RAIL_MIN_HEIGHT = "min-h-[250px] lg:min-h-0 lg:h-full";
  * Every paid slot wears the same shell — a 2px accent rule on top and a label
  * bar — so a reader can tell an ad from editorial at a glance, wherever it sits.
  */
-export const AD_SHELL = "border border-line border-t-2 border-t-accent bg-raise";
+export const AD_SHELL = "border border-line border-t-2 border-t-accent bg-canvas";
 
 export function AdLabelBar({ note }: { note?: string }) {
   return (
@@ -105,18 +105,17 @@ function ImageCreative({ ad, layout }: { ad: Advertisement; layout: Layout }) {
 
   const rail = layout === "rail";
   return (
-    <div className={cn("overflow-hidden", rail ? "relative flex h-full w-full items-center" : "absolute inset-0 h-full w-full")}>
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        className={cn("absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl", rail && "hidden lg:block")}
-      />
+    <div
+      className={cn(
+        "flex items-center justify-center overflow-hidden bg-canvas",
+        rail ? "relative h-full w-full" : "absolute inset-0 h-full w-full",
+      )}
+    >
       <img
         src={src}
         alt={alt}
         loading="lazy"
-        className={cn("relative block object-contain", rail ? "h-auto w-full" : "h-full w-full")}
+        className={cn("block object-contain", rail ? "h-auto w-full" : "h-full w-full")}
       />
     </div>
   );
