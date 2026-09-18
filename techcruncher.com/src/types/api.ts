@@ -383,13 +383,26 @@ export type AdPosition = (typeof AD_POSITIONS)[number];
  * on a retired slot still validate and can still be read.
  */
 export const AD_SLOTS: { value: AdPosition; label: string }[] = [
+  { value: "home-hero", label: "Home hero (under the slider)" },
   { value: "home-top", label: "Home top" },
   { value: "home-gallery-left", label: "Home gallery left" },
   { value: "home-gallery-right", label: "Home gallery right" },
+  { value: "home-infeed", label: "Home in-feed (inside Latest reporting)" },
+  { value: "home-mid", label: "Home mid" },
   { value: "home-bottom", label: "Home bottom" },
+  { value: "article-top", label: "Article top" },
+  { value: "article-inline", label: "Article inline (inside the body)" },
+  { value: "article-bottom", label: "Article bottom" },
   { value: "article-sidebar-top", label: "Article sidebar top" },
   { value: "article-sidebar-middle", label: "Article sidebar middle" },
   { value: "article-sidebar-bottom", label: "Article sidebar bottom" },
+  { value: "sidebar", label: "Sidebar (homepage and listings)" },
+  { value: "sidebar-sticky", label: "Sidebar sticky (article page)" },
+  { value: "category-top", label: "Category top" },
+  { value: "category-infeed", label: "Category in-feed" },
+  { value: "footer", label: "Footer" },
+  { value: "mobile-sticky-bottom", label: "Mobile sticky bottom" },
+  { value: "home-gallery", label: "Home gallery (legacy single rail)" },
 ];
 export type Device = "desktop" | "tablet" | "mobile";
 

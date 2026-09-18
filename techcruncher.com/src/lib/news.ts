@@ -270,18 +270,31 @@ export function trimToRows<T>(items: T[], sizes = [6, 4, 2]): T[] {
  */
 export class StoryPool {
   private used = new Set<string>();
+  /** Stories an editor picked by hand: only their own band may take them. */
+  private reserved = new Set<string>();
 
   constructor(private readonly fallback: News[] = []) {}
 
-  claim(preferred: (News | null | undefined)[], size: number, backfill = true): News[] {
+  /**
+   * Holds hand-picked stories back from every automatic band. Without this the
+   * bands above a curated one would backfill from the same pool and swallow the
+   * editor's choice, which then silently rendered an automatic story instead.
+   */
+  reserve(items: (News | null | undefined)[]) {
+    items.forEach((item) => item?._id && this.reserved.add(item._id));
+  }
+
+  /** `ownReserved` lets a curated band take the stories reserved for it. */
+  claim(preferred: (News | null | undefined)[], size: number, backfill = true, ownReserved = false): News[] {
     const out: News[] = [];
-    const take = (item?: News | null) => {
+    const take = (item?: News | null, isPreferred = false) => {
       if (!item?._id || out.length >= size || this.used.has(item._id)) return;
+      if (this.reserved.has(item._id) && !(ownReserved && isPreferred)) return;
       this.used.add(item._id);
       out.push(item);
     };
-    preferred.forEach(take);
-    if (backfill) this.fallback.forEach(take);
+    preferred.forEach((item) => take(item, true));
+    if (backfill) this.fallback.forEach((item) => take(item, false));
     return out;
   }
 

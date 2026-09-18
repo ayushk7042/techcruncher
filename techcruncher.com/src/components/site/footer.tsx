@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { site } from "@/config/site";
 import type { Category, Tag } from "@/types/api";
+import { AdSlot } from "@/components/site/ad-slot";
 import { SocialIcon } from "@/components/ui/social-icon";
 import { categoryHref, tagHref } from "@/lib/news";
 import { Logo } from "./logo";
@@ -50,6 +51,8 @@ export function Footer({ categories, tags }: { categories: Category[]; tags: Tag
 
   return (
     <footer className="mt-16 border-t-2 border-ink">
+      {/* Footer slot; renders only when an ad is booked on it. */}
+      <AdSlot position="footer" className="container pt-6" />
       <div className="border-b border-line">
         <div className="container grid gap-9 py-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-5">

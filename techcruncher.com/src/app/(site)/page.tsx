@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { AdSlot } from "@/components/site/ad-slot";
 import { ArticleListRow, ArticleRankRow, ArticleTileCard, ArticleVideoCard, ArticleWideRow } from "@/components/site/cards";
 import { Rail, SectionHeader } from "@/components/site/headers";
@@ -75,8 +76,21 @@ async function loadGalleryRails(homepage: Homepage | null): Promise<ResolvedRail
       const position = config?.adPosition && isAdPosition(config.adPosition) ? config.adPosition : RAIL_POSITIONS[side];
       try {
         const ads = await publicApi.serveAds(position, "desktop", undefined, { revalidate: 60, tags: ["ads"] });
-        const bookable = ads.filter((ad) => (ad.type === "script" ? Boolean(ad.scriptCode) : Boolean(ad.image?.url)));
-        return [side, bookable.length ? { kind: "ad", position, ads: bookable, width } : null];
+        let bookable = ads.filter((ad) => (ad.type === "script" ? Boolean(ad.scriptCode) : Boolean(ad.image?.url)));
+        let slot: AdPosition = position;
+
+        // "home-gallery" is the old single-rail slot; anything still booked on
+        // it runs in the left rail rather than being stranded.
+        if (!bookable.length && side === "left") {
+          const legacy = await publicApi.serveAds("home-gallery", "desktop", undefined, { revalidate: 60, tags: ["ads"] });
+          const usable = legacy.filter((ad) => (ad.type === "script" ? Boolean(ad.scriptCode) : Boolean(ad.image?.url)));
+          if (usable.length) {
+            bookable = usable;
+            slot = "home-gallery";
+          }
+        }
+
+        return [side, bookable.length ? { kind: "ad", position: slot, ads: bookable, width } : null];
       } catch {
         return [side, null];
       }
@@ -124,6 +138,8 @@ export default async function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <HeroSlider slides={bands.slides} />
+      {/* Renders only when something is booked on this slot. */}
+      <AdSlot position="home-hero" className="container pt-6" />
       <TopicTape categories={topics} />
 
       <div className="container space-y-12 py-10 sm:space-y-14 sm:py-12">
@@ -150,8 +166,12 @@ export default async function HomePage() {
                   action={{ label: "View all", href: "/latest" }}
                 />
                 <div className="divide-y divide-line border-b border-line">
-                  {bands.latest.map((news) => (
-                    <ArticleWideRow key={news._id} news={news} dense />
+                  {bands.latest.map((news, index) => (
+                    <Fragment key={news._id}>
+                      <ArticleWideRow news={news} dense />
+                      {/* In-feed slot, a third of the way down the list. */}
+                      {index === 2 && <AdSlot position="home-infeed" className="py-5" />}
+                    </Fragment>
                   ))}
                 </div>
               </section>
