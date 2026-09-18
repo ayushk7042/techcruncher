@@ -38,16 +38,10 @@ export function featuredLayout(rails: ResolvedRails) {
 }
 
 function RailBanner({ rail }: { rail: Extract<ResolvedRail, { kind: "banner" }> }) {
-  // Full width, never cropped; spare room on desktop is filled with a blurred
-  // copy of the same image rather than left blank.
+  // Full width, never cropped; spare room beside the artwork is the page's own
+  // light background, matching the banner slots elsewhere on the site.
   const image = (
-    <span className="relative flex w-full items-center self-stretch overflow-hidden">
-      <img
-        src={rail.image}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 hidden h-full w-full scale-110 object-cover opacity-40 blur-2xl lg:block"
-      />
+    <span className="relative flex w-full items-center justify-center self-stretch overflow-hidden bg-canvas">
       <img src={rail.image} alt={rail.alt} loading="lazy" className="relative block h-auto w-full object-contain lg:h-full" />
     </span>
   );
